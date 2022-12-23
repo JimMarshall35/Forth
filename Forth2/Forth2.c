@@ -7,6 +7,25 @@
 * 
 * *********************************************************
 
+
+: fizzbuzz
+	0 do
+		i 0 = if
+			0 . cr 
+		else i 15 % 0 = if
+			s" fizzbuzz" print cr
+		else i 3 % 0 = if
+			s" fizz" print cr
+		else i 5 % 0 = if
+			s" buzz" print cr
+		else
+			i . cr 
+		then
+		then
+		then
+		then
+	loop
+;
 */
 typedef enum {
 	Return,
@@ -54,6 +73,8 @@ typedef enum {
 	J,
 	FullStop,
 	SearchForAndPushExecutionTokenCompileTime,
+	StringLiteral,
+	StringLiteralCompileTime,
 
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
@@ -61,7 +82,7 @@ typedef enum {
 // forward declarations
 ExecutionToken SearchForToken(ForthVm* vm);
 Bool LoadNextToken(ForthVm* vm); // to be used at compile time only
-void CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
+int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
 
 #define PopIntStack(vm) *(--vm->intStackTop)
 #define PushIntStack(vm, val) *(vm->intStackTop++) = val;
@@ -405,6 +426,23 @@ noIncrement:
 			if (!LoadNextToken(vm)) {
 				//return True;
 			}
+		break; case StringLiteral:
+		{
+			Cell sizeInBytes = *(vm->instructionPointer++);
+			PushIntStack(vm, sizeInBytes);
+			PushIntStack(vm, vm->instructionPointer);
+			
+			Cell cellsAdvanceRequired = sizeInBytes % sizeof(Cell) ? (sizeInBytes / sizeof(Cell)) + 1 : sizeInBytes / sizeof(Cell);
+			vm->instructionPointer += cellsAdvanceRequired;
+		}
+			
+
+		break; case StringLiteralCompileTime:
+			StringCopy(vm->tokenBuffer, "sr\"");
+			item = SearchForToken(vm);
+			*vm->memoryTop++ = item;
+			cell1 = CompileCStringToForthByteCode(vm, vm->nextTokenStart, '"');
+			vm->nextTokenStart += cell1 + 2;
 		break; default:
 			while (token->type != Primitive) {
 				// push instruction pointer for later return from this non primitive token
@@ -426,7 +464,7 @@ noIncrement:
 	return False;
 }
 
-void CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
+int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
 	Cell* length = vm->memoryTop++; // save to back-patch with length afterwards;
 	const char* readPtr = string;
 	char* writePtr = (char*)vm->memoryTop;
@@ -438,6 +476,7 @@ void CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) 
 	Cell cellsRequired = stringLen % sizeof(Cell) ? (stringLen / sizeof(Cell)) + 1 : stringLen / sizeof(Cell);
 	*length = stringLen;
 	vm->memoryTop += cellsRequired;
+	return stringLen;
 }
 
 Bool LoadNextToken(ForthVm* vm) {
@@ -619,6 +658,13 @@ exit:
 // other misc words
 
 ": cr 10 emit ; "
+
+": print ( length address -- ) "
+	"swap "
+	"0 do "
+		"dup i + c@ emit "
+	"loop drop "
+"; "
 ;
 
 ForthVm Forth_Initialise(
@@ -662,51 +708,54 @@ ForthVm Forth_Initialise(
 
 	vm.compileNextTokenAsString = False;
 
-	AddPrimitiveToDict(&vm, Return,                         "return",    False);
-	AddPrimitiveToDict(&vm, Add,                            "+",         False);
-	AddPrimitiveToDict(&vm, Subtract,                       "-",         False);
-	AddPrimitiveToDict(&vm, Divide,                         "/",         False);
-	AddPrimitiveToDict(&vm, Multiply,                       "*",         False);
-	AddPrimitiveToDict(&vm, Modulo,                         "%",         False);
-	AddPrimitiveToDict(&vm, Branch0,                        "branch0",   False);
-	AddPrimitiveToDict(&vm, Branch,                         "branch",    False);
-	AddPrimitiveToDict(&vm, Dup,                            "dup",       False);
-	AddPrimitiveToDict(&vm, Swap,                           "swap",      False);
-	AddPrimitiveToDict(&vm, Rot,                            "rot",       False);
-	AddPrimitiveToDict(&vm, NumLiteral,                     "lit",       False);
-	AddPrimitiveToDict(&vm, Emit,                           "emit",      False);
-	AddPrimitiveToDict(&vm, Fetch,                          "@",         False);
-	AddPrimitiveToDict(&vm, Store,                          "!",         False);
-	AddPrimitiveToDict(&vm, ByteFetch,                      "c@",        False);
-	AddPrimitiveToDict(&vm, ByteStore,                      "c!",        False);
-	AddPrimitiveToDict(&vm, SearchForAndPushExecutionToken, "r'",         False);
-	AddPrimitiveToDict(&vm, ExecuteToken,                   "execute",   False);
-	AddPrimitiveToDict(&vm, Here,                           "here",      False);
-	AddPrimitiveToDict(&vm, Allot,                          "allot",     False);
-	AddPrimitiveToDict(&vm, Colon,                          ":",         False);
-	AddPrimitiveToDict(&vm, SemiColon,                      ";",         True);
-	AddPrimitiveToDict(&vm, Show,                           "show",      False);
-	AddPrimitiveToDict(&vm, ShowWords,                      "showWords", False);
-	AddPrimitiveToDict(&vm, Immediate,                      "immediate", False);
-	AddPrimitiveToDict(&vm, Create,                         "create",    False);
-	AddPrimitiveToDict(&vm, Equals,                         "=",         False);
-	AddPrimitiveToDict(&vm, GreaterThan,                    ">",         False);
-	AddPrimitiveToDict(&vm, LessThan,                       "<",         False);
-	AddPrimitiveToDict(&vm, And,                            "and",       False);
-	AddPrimitiveToDict(&vm, Or,                             "or",        False);
-	AddPrimitiveToDict(&vm, Not,                            "not",       False);
-	AddPrimitiveToDict(&vm, CellSize,                       "cell",      False);
-	AddPrimitiveToDict(&vm, CommentStart,                   "(",         True);
-	AddPrimitiveToDict(&vm, CommentStop,                    ")",         True);
-	AddPrimitiveToDict(&vm, Drop,                           "drop",      False);
-	AddPrimitiveToDict(&vm, PushReturnStackWord,            "R",         False);
-	AddPrimitiveToDict(&vm, PopReturnStackWord,             "R>",        False);
-	AddPrimitiveToDict(&vm, TwoDup,                         "2dup",      False);
-	AddPrimitiveToDict(&vm, TwoSwap,                        "2swap",     False);
-	AddPrimitiveToDict(&vm, I,                              "i",         False);
-	AddPrimitiveToDict(&vm, J,                              "j",         False);
-	AddPrimitiveToDict(&vm, FullStop,                       ".",         False);
-	AddPrimitiveToDict(&vm, SearchForAndPushExecutionTokenCompileTime, "'", True);
+	AddPrimitiveToDict(&vm, Return,                                    "return",    False);
+	AddPrimitiveToDict(&vm, Add,                                       "+",         False);
+	AddPrimitiveToDict(&vm, Subtract,                                  "-",         False);
+	AddPrimitiveToDict(&vm, Divide,                                    "/",         False);
+	AddPrimitiveToDict(&vm, Multiply,                                  "*",         False);
+	AddPrimitiveToDict(&vm, Modulo,                                    "%",         False);
+	AddPrimitiveToDict(&vm, Branch0,                                   "branch0",   False);
+	AddPrimitiveToDict(&vm, Branch,                                    "branch",    False);
+	AddPrimitiveToDict(&vm, Dup,                                       "dup",       False);
+	AddPrimitiveToDict(&vm, Swap,                                      "swap",      False);
+	AddPrimitiveToDict(&vm, Rot,                                       "rot",       False);
+	AddPrimitiveToDict(&vm, NumLiteral,                                "lit",       False);
+	AddPrimitiveToDict(&vm, Emit,                                      "emit",      False);
+	AddPrimitiveToDict(&vm, Fetch,                                     "@",         False);
+	AddPrimitiveToDict(&vm, Store,                                     "!",         False);
+	AddPrimitiveToDict(&vm, ByteFetch,                                 "c@",        False);
+	AddPrimitiveToDict(&vm, ByteStore,                                 "c!",        False);
+	AddPrimitiveToDict(&vm, SearchForAndPushExecutionToken,            "r'",        False);
+	AddPrimitiveToDict(&vm, ExecuteToken,                              "execute",   False);
+	AddPrimitiveToDict(&vm, Here,                                      "here",      False);
+	AddPrimitiveToDict(&vm, Allot,                                     "allot",     False);
+	AddPrimitiveToDict(&vm, Colon,                                     ":",         False);
+	AddPrimitiveToDict(&vm, SemiColon,                                 ";",         True);
+	AddPrimitiveToDict(&vm, Show,                                      "show",      False);
+	AddPrimitiveToDict(&vm, ShowWords,                                 "showWords", False);
+	AddPrimitiveToDict(&vm, Immediate,                                 "immediate", False);
+	AddPrimitiveToDict(&vm, Create,                                    "create",    False);
+	AddPrimitiveToDict(&vm, Equals,                                    "=",         False);
+	AddPrimitiveToDict(&vm, GreaterThan,                               ">",         False);
+	AddPrimitiveToDict(&vm, LessThan,                                  "<",         False);
+	AddPrimitiveToDict(&vm, And,                                       "and",       False);
+	AddPrimitiveToDict(&vm, Or,                                        "or",        False);
+	AddPrimitiveToDict(&vm, Not,                                       "not",       False);
+	AddPrimitiveToDict(&vm, CellSize,                                  "cell",      False);
+	AddPrimitiveToDict(&vm, CommentStart,                              "(",         True);
+	AddPrimitiveToDict(&vm, CommentStop,                               ")",         True);
+	AddPrimitiveToDict(&vm, Drop,                                      "drop",      False);
+	AddPrimitiveToDict(&vm, PushReturnStackWord,                       "R",         False);
+	AddPrimitiveToDict(&vm, PopReturnStackWord,                        "R>",        False);
+	AddPrimitiveToDict(&vm, TwoDup,                                    "2dup",      False);
+	AddPrimitiveToDict(&vm, TwoSwap,                                   "2swap",     False);
+	AddPrimitiveToDict(&vm, I,                                         "i",         False);
+	AddPrimitiveToDict(&vm, J,                                         "j",         False);
+	AddPrimitiveToDict(&vm, FullStop,                                  ".",         False);
+	AddPrimitiveToDict(&vm, SearchForAndPushExecutionTokenCompileTime, "'",         True);
+	AddPrimitiveToDict(&vm, StringLiteral,                             "sr\"",      False);
+	AddPrimitiveToDict(&vm, StringLiteralCompileTime,                  "s\"",       True);
+
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
 
