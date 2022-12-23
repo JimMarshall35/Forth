@@ -288,31 +288,25 @@ noIncrement:
 			vm->currentMode |= Forth_CompileBit;
 			item = (DictionaryItem*)vm->memoryTop;
 			vm->tempDictionaryItemPointer = vm->memoryTop;
-
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
 			item->data = vm->memoryTop + (sizeof(DictionaryItem) / sizeof(Cell));
 			item->isImmediate = False;
 			item->type = ColonWord;
-
 			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));
 			// don't increment dictionaryTop until the semicolon
 			LoadNextToken(vm);
-
 		break; case SemiColon:
 			if ((vm->currentMode & Forth_InColonDefinitionBit) == 0) {
 				vm->printf("you're not in colon compile mode");
 			}
-
 			// compile a return token
 			StringCopy(vm->tokenBuffer, "return");
 			*(vm->memoryTop++) = SearchForToken(vm);
-
 			// "reveal" the new word, linking it into the dictionary
 			item = vm->tempDictionaryItemPointer;
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
 			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));//need to align somehow but not now i know it will be 
-			
 			// take us out of colon definition mode and its child mode, compile mode
 			vm->currentMode &= ~(Forth_InColonDefinitionBit);
 			vm->currentMode &= ~(Forth_CompileBit);
@@ -453,8 +447,6 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 	while (*vm->tokenBuffer != "\0") {
 		ExecutionToken foundToken = SearchForToken(vm);
 		vm->scratchPadTop = vm->scratchPadMemory;
-
-
 		if (foundToken != NULL) {
 			if (vm->currentMode & Forth_InColonDefinitionBit) {
 				if ((vm->currentMode & Forth_CommentFlag) == 0) {
@@ -496,7 +488,6 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 				PushIntStack(vm, converted);
 			}
 		}
-		
 		if (!LoadNextToken(vm)) {
 			return;
 		}

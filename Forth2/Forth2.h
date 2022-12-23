@@ -59,7 +59,7 @@ extern "C" {
 		DictionaryItem* tempDictionaryItemPointer; // points to the start of a definition being compiled, so that it can be linked in only when "revealed"
 		DictionaryItem* TickWordLocation; // used internally for compiler
 
-		// memory for compiled words and variables - this is separate from the dictionary items
+		// memory for compiled words and variables
 		Cell* memory;
 		Cell* memoryTop;
 		UCell maxMemorySize; // in cells
