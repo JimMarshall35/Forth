@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "../Forth2/Forth2.h"
 #include <string>
+#include <cstdarg>
 
 namespace {
 #define NumDictItems 256
@@ -106,11 +107,13 @@ INSTANTIATE_TEST_CASE_P(
 class PutCharTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<char>, std::vector<Cell>>> {
 private:
     static std::vector<char> s_charOutput;
+
 protected:
     void ComparePutCharOutputToExpected(const std::vector<char>& expected) {
-        ASSERT_EQ(s_charOutput.size(), expected.size());
+        
+        EXPECT_TRUE(s_charOutput.size() == expected.size()) << std::string(s_charOutput.data());
         for (int i = 0; i < expected.size(); i++) {
-            ASSERT_EQ(s_charOutput[i], expected[i]);
+            EXPECT_TRUE(s_charOutput[i] == expected[i]) << std::string(s_charOutput.data());
         }
     }
     static void ClearCharOutput() {
@@ -119,6 +122,17 @@ protected:
     static int MockPutChar(int charVal) {
         s_charOutput.push_back((char)charVal);
         return 0;
+    }
+    static int MockPrintf(const char* format, ...) {
+        char buffer[1024];
+        va_list args;
+        va_start(args, format);
+        vsprintf_s(buffer, format, args);
+        const char* readPtr = buffer;
+        while (*readPtr != '\0') {
+            s_charOutput.push_back(*readPtr++);
+        }
+        return 1;
     }
     void CompareStackToExpected(const ForthVm& vm, const std::vector<Cell>& expected) {
         size_t stackSize = vm.intStackTop - vm.intStack;
@@ -136,7 +150,7 @@ TEST_P(PutCharTests, CorrectValuesPassedToPutChar) {
     // and do fail if given incorrect expected outputs
 
     // arrange
-    TestSetup(&printf, &MockPutChar);
+    TestSetup(&MockPrintf, &MockPutChar);
     ClearCharOutput();
 
     std::string stringToDo = std::get<0>(GetParam());
@@ -160,6 +174,27 @@ Chars FromStringLiteral(const char* string) {
     return chars;
 }
 
+const char* fizzbuzzTest = 
+": fizzbuzz "
+    "0 do "
+        "i 0 = if "
+            "0 . cr "
+        "else i 15 % 0 = if "
+            "s\" fizzbuzz\" print cr "
+        "else i 3 % 0 = if "
+            "s\" fizz\" print cr "
+        "else i 5 % 0 = if "
+            "s\" buzz\" print cr "
+        "else "
+            "i . cr "
+        "then "
+        "then "
+        "then "
+        "then "
+    "loop "
+"; 16 fizzbuzz";
+
+const char* fizzbuzzTestOutput = "0\n1\n2\nfizz\n4\nbuzz\nfizz\n7\n8\nfizz\nbuzz\n11\nfizz\n13\n14\nfizzbuzz\n";
 INSTANTIATE_TEST_CASE_P(
     CorrectValuesPassedToPutCharTestCases,
     PutCharTests,
@@ -170,11 +205,12 @@ INSTANTIATE_TEST_CASE_P(
         Case(": test begin 29 emit -1 + dup not until drop ; 3 test", Chars{ 29, 29, 29 }, Stack{}),
         Case(": test begin 29 emit -1 + dup not until drop ; 4 test", Chars{ 29, 29, 29, 29 }, Stack{}),
         Case(": test begin 29 emit -1 + dup not until drop ; 1 test", Chars{ 29 }, Stack{}),
-        // string literal, print
+        // string literal, print, do
         Case(": test s\" hello world\" print ; test", FromStringLiteral("hello world"), Stack{}),
-        Case(": test s\" What's up ?!?!\" print 123 456 ; test", FromStringLiteral("What's up ?!?!"), Stack{123,456}),
-        Case(": test 0 do s\" hello\" print loop ; 3 test", FromStringLiteral("hellohellohello"), Stack{})
-
+        Case(": test s\" What's up ?!?!\" print 123 456 ; test", FromStringLiteral("What's up ?!?!"), Stack{ 123,456 }),
+        Case(": test 0 do s\" hello\" print loop ; 3 test", FromStringLiteral("hellohellohello"), Stack{}),
+        Case(": test s\" hello world\" print ; 420 . test", FromStringLiteral("420hello world"), Stack{}),
+        Case(fizzbuzzTest, FromStringLiteral(fizzbuzzTestOutput), Stack{})
     ));
 
 }

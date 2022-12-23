@@ -1,32 +1,11 @@
 #include "Forth2.h"
 #include "StringUtils.h"
-/*
-*
-* Forth - Jim Marshall - 2022
-* jimmarshall35@gmail.com
-* 
-* *********************************************************
 
+/************************************
+ *   Forth - Jim Marshall - 2022    *
+ *   jimmarshall35@gmail.com        *
+ ************************************/
 
-: fizzbuzz
-	0 do
-		i 0 = if
-			0 . cr 
-		else i 15 % 0 = if
-			s" fizzbuzz" print cr
-		else i 3 % 0 = if
-			s" fizz" print cr
-		else i 5 % 0 = if
-			s" buzz" print cr
-		else
-			i . cr 
-		then
-		then
-		then
-		then
-	loop
-;
-*/
 typedef enum {
 	Return,
 	Add,
@@ -582,7 +561,7 @@ const char* coreWords =
 
 // loops 
 ": begin "
-	"here show "
+	"here "
 "; immediate "
 
 ": until "
@@ -592,7 +571,7 @@ const char* coreWords =
 	"1 - "
 	"-1 * "
 	"here ! "
-	"1 allot show ( advance top of memory to compile next part of the program ) "
+	"1 allot ( advance top of memory to compile next part of the program ) "
 "; immediate "
 /*
 *  compiler generated do / loop pseudo code
