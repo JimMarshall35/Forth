@@ -94,8 +94,6 @@ INSTANTIATE_TEST_CASE_P(
         Case("1 2 3 4 2swap", Stack{ 3, 4, 1, 2 }),
         Case("1 2 3 4 2dup", Stack{ 1, 2, 3, 4, 3, 4 }),
 
-
-
         // built in composite words
         Case(": test if 1 else 2 then ; 0 test 1 test", Stack{ 2,1 }),
         Case(": test if 1 2 3 + + else 2 32 + then ; 0 test 1 test", Stack{ 34, 6 }),
@@ -154,6 +152,13 @@ TEST_P(PutCharTests, CorrectValuesPassedToPutChar) {
 }
 
 using Chars = std::vector<char>;
+Chars FromStringLiteral(const char* string) {
+    Chars chars;
+    while (*string != '\0') {
+        chars.push_back(*string++);
+    }
+    return chars;
+}
 
 INSTANTIATE_TEST_CASE_P(
     CorrectValuesPassedToPutCharTestCases,
@@ -164,7 +169,12 @@ INSTANTIATE_TEST_CASE_P(
         // begin, until
         Case(": test begin 29 emit -1 + dup not until drop ; 3 test", Chars{ 29, 29, 29 }, Stack{}),
         Case(": test begin 29 emit -1 + dup not until drop ; 4 test", Chars{ 29, 29, 29, 29 }, Stack{}),
-        Case(": test begin 29 emit -1 + dup not until drop ; 1 test", Chars{ 29 }, Stack{})
+        Case(": test begin 29 emit -1 + dup not until drop ; 1 test", Chars{ 29 }, Stack{}),
+        // string literal, print
+        Case(": test s\" hello world\" print ; test", FromStringLiteral("hello world"), Stack{}),
+        Case(": test s\" What's up ?!?!\" print 123 456 ; test", FromStringLiteral("What's up ?!?!"), Stack{123,456}),
+        Case(": test 0 do s\" hello\" print loop ; 3 test", FromStringLiteral("hellohellohello"), Stack{})
+
     ));
 
 }

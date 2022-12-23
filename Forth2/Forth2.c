@@ -427,16 +427,14 @@ noIncrement:
 				//return True;
 			}
 		break; case StringLiteral:
-		{
-			Cell sizeInBytes = *(vm->instructionPointer++);
-			PushIntStack(vm, sizeInBytes);
-			PushIntStack(vm, vm->instructionPointer);
+			{
+				Cell sizeInBytes = *(vm->instructionPointer++);
+				PushIntStack(vm, sizeInBytes);
+				PushIntStack(vm, vm->instructionPointer);
 			
-			Cell cellsAdvanceRequired = sizeInBytes % sizeof(Cell) ? (sizeInBytes / sizeof(Cell)) + 1 : sizeInBytes / sizeof(Cell);
-			vm->instructionPointer += cellsAdvanceRequired;
-		}
-			
-
+				Cell cellsAdvanceRequired = sizeInBytes % sizeof(Cell) ? (sizeInBytes / sizeof(Cell)) + 1 : sizeInBytes / sizeof(Cell);
+				vm->instructionPointer += cellsAdvanceRequired;
+			}
 		break; case StringLiteralCompileTime:
 			StringCopy(vm->tokenBuffer, "sr\"");
 			item = SearchForToken(vm);
