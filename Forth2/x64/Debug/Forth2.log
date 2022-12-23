@@ -1,0 +1,42 @@
+﻿  Forth2.c
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(81,85): warning C4133: ':': incompatible types - from 'DictionaryItem *' to 'Cell *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(81,85): warning C4133: 'return': incompatible types - from 'Cell *' to 'DictionaryItem *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(97,47): warning C4047: '<': 'ExecutionToken' differs in levels of indirection from 'int'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(104,28): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(105,54): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(106,28): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(107,55): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(108,28): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(109,56): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(119,35): warning C4047: '!=': 'Cell' differs in levels of indirection from 'const DictionaryItem *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(123,26): warning C4047: '=': 'ExecutionToken' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(128,56): warning C4090: 'function': different 'const' qualifiers
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(117,1): warning C4047: 'initializing': 'Cell *' differs in levels of indirection from 'const Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(120,1): warning C4047: 'initializing': 'ExecutionToken' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(201,36): warning C4047: '=': 'ExecutionToken' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(206,47): warning C4047: '=': 'Cell *' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(259,21): warning C4244: 'function': conversion from 'Cell' to 'int', possible loss of data
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(276,33): warning C4020: 'SearchForToken': too many actual parameters
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(276,52): warning C4047: '=': 'Cell' differs in levels of indirection from 'ExecutionToken'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(281,4): warning C4047: '=': 'Cell' differs in levels of indirection from 'Cell *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(297,49): warning C4133: '=': incompatible types - from 'Cell *' to 'DictionaryItem *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(300,72): warning C4047: '=': 'Cell' differs in levels of indirection from 'Cell *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(315,43): warning C4047: '=': 'Cell' differs in levels of indirection from 'ExecutionToken'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(343,31): warning C4047: '=': 'Cell' differs in levels of indirection from 'Cell *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(413,49): warning C4047: '=': 'Cell' differs in levels of indirection from 'Cell *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(414,42): warning C4047: '=': 'Cell *' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(420,38): warning C4047: '=': 'ExecutionToken' differs in levels of indirection from 'Cell'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(230,1): warning C4244: 'initializing': conversion from 'Cell' to 'int', possible loss of data
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(460,33): warning C4047: '!=': 'int' differs in levels of indirection from 'char [2]'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(469,43): warning C4047: '=': 'Cell *' differs in levels of indirection from 'ExecutionToken *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(470,28): warning C4020: 'InnerInterpreter': too many actual parameters
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(474,38): warning C4047: '=': 'Cell' differs in levels of indirection from 'ExecutionToken'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(484,42): warning C4047: '=': 'Cell *' differs in levels of indirection from 'ExecutionToken *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(489,41): warning C4047: '=': 'Cell *' differs in levels of indirection from 'ExecutionToken *'
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(494,25): warning C4013: 'atoi' undefined; assuming extern returning int
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(498,44): warning C4047: '=': 'Cell' differs in levels of indirection from 'ExecutionToken'
+  StringUtils.c
+  Generating Code...
+C:\Users\james.marshall\source\repos\Forth2\Forth2\Forth2.c(94): warning C4716: 'ParseInlineBytecodeStringToCStringInTokenBuffer': must return a value
+MSVCRTD.lib(exe_main.obj) : error LNK2019: unresolved external symbol main referenced in function "int __cdecl invoke_main(void)" (?invoke_main@@YAHXZ)
+C:\Users\james.marshall\source\repos\Forth2\x64\Debug\Forth2.exe : fatal error LNK1120: 1 unresolved externals
