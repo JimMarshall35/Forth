@@ -38,9 +38,7 @@ extern "C" {
 
 	typedef struct {
 		char name[DictionaryItemNameMaxLength];
-		DictionaryEntryType type;
-		Cell data; // either a pointer to byte code, for a colon word
-				   //an address of a variable or a constant value or an enum representing a primitive word
+		Cell data[2];
 		Bool isImmediate;
 		void* previous;
 	}DictionaryItem;

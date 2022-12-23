@@ -1,10 +1,10 @@
 #include "Forth2.h"
 #include "StringUtils.h"
 
-/************************************
+/************************************\
  *   Forth - Jim Marshall - 2022    *
  *   jimmarshall35@gmail.com        *
- ************************************/
+\************************************/
 
 typedef enum {
 	Return,
@@ -54,6 +54,7 @@ typedef enum {
 	SearchForAndPushExecutionTokenCompileTime,
 	StringLiteral,
 	StringLiteralCompileTime,
+	EnterWord,
 
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
@@ -101,13 +102,13 @@ Bool IsPrimitive(ExecutionToken token) {
 
 void PrintDictionaryContents(const ForthVm* vm) {
 	// I don't like how long this function is
-	const DictionaryItem* item = vm->dictionarySearchStart;
+	/*const DictionaryItem* item = vm->dictionarySearchStart;
 	int i = 0;
 	StringCopy(vm->tokenBuffer, "return");
 	const DictionaryItem* returnItem = SearchForToken(vm);
 	StringCopy(vm->tokenBuffer, "lit");
 	const DictionaryItem* literalItem = SearchForToken(vm);
-	StringCopy(vm->tokenBuffer, "'");
+	StringCopy(vm->tokenBuffer, "r'");
 	const DictionaryItem* findWordItem = SearchForToken(vm);
 
 	while (item->previous != NULL) {
@@ -142,6 +143,10 @@ void PrintDictionaryContents(const ForthVm* vm) {
 		vm->printf("\n");
 		item = ((const DictionaryItem*)item->previous);
 	}
+	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
+	size_t capacity = vm->maxMemorySize * sizeof(Cell);
+	vm->printf("memory usage: %i / %i bytes. %f percent memory used\n", dictionaryBytes, capacity,
+		((float)dictionaryBytes / (float) capacity) * 100.0f);*/
 }
 
 ExecutionToken SearchForToken(ForthVm* vm) {
@@ -159,8 +164,7 @@ void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const c
 	DictionaryItem item;
 	StringCopy(item.name, forthName);
 	item.isImmediate = isImmediate;
-	item.type = Primitive;
-	item.data = primitive;
+	item.data[0] = primitive;
 	PushDictionaryWord(vm, &item);
 }
 
@@ -188,14 +192,14 @@ void PrintReturnStack(const ForthVm* vm) {
 
 Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don't push to return stack just execute the token tokenVal
 	Cell* initialReturnStack = vm->returnStackTop;
-	ExecutionToken token, item;
+	ExecutionToken token, item, item2;
 	Cell cell1, cell2, cell3, cell4; // top three of the stack commonly used, can't declare locals in case
 	const char* nextTokenReadPtr = NULL;
 	char* dictionaryNameWritePtr = NULL;
 	do {
 		token = *vm->instructionPointer++;
 noIncrement:
-		switch ((PrimitiveWordTokenValues)token->data) {
+		switch ((PrimitiveWordTokenValues)token->data[0]) {
 		// fancy new switch case break formatting technique - on same line as case so you can't forget it
 		break; case Return:
 			vm->instructionPointer = PopReturnStack(vm);
@@ -291,9 +295,11 @@ noIncrement:
 			item = (DictionaryItem*)vm->memoryTop;
 			vm->tempDictionaryItemPointer = vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
-			item->data = vm->memoryTop + (sizeof(DictionaryItem) / sizeof(Cell));
+			StringCopy(vm->tokenBuffer, "enter");
+			item2 = SearchForToken(vm);
+			item->data[0] = EnterWord;
+			item->data[1] = vm->memoryTop + (sizeof(DictionaryItem) / sizeof(Cell));
 			item->isImmediate = False;
-			item->type = ColonWord;
 			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));
 			// don't increment dictionaryTop until the semicolon
 			LoadNextToken(vm);
@@ -323,18 +329,13 @@ noIncrement:
 			}
 			LastWordAdded(vm)->isImmediate = True;
 		break; case Create:
-			if (vm->currentMode & Forth_CompileBit) {
-				item = (DictionaryItem*)vm->memoryTop;
-				CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
-				
-				item->type = Variable;
-				vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell);
-				item->data = vm->memoryTop;
-				LoadNextToken(vm);
-			}
-			else {
-				// need to implement
-			}
+			item = (DictionaryItem*)vm->memoryTop;
+			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
+			vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell);
+			item->data[0] = EnterWord;
+			item->data[1] = vm->memoryTop;
+			LoadNextToken(vm);
+
 		break; case Equals:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
@@ -420,21 +421,9 @@ noIncrement:
 			*vm->memoryTop++ = item;
 			cell1 = CompileCStringToForthByteCode(vm, vm->nextTokenStart, '"');
 			vm->nextTokenStart += cell1 + 2;
-		break; default:
-			while (token->type != Primitive) {
-				// push instruction pointer for later return from this non primitive token
-				switch (token->type) {
-				break; case ColonWord:
-					PushReturnStack(vm, vm->instructionPointer); // push ip
-					vm->instructionPointer = token->data; // jump to new word start
-				break; case Variable: // intentional fall through
-				case Constant:
-					PushIntStack(vm, token->data);
-					return True;
-				}
-				token = *vm->instructionPointer++;
-			}
-			goto noIncrement;
+		break; case EnterWord:
+			PushReturnStack(vm, vm->instructionPointer); // push ip
+			vm->instructionPointer = token->data[1];
 		}
 		
 	} while (vm->returnStackTop != initialReturnStack);
@@ -487,7 +476,7 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 						*(vm->memoryTop++) = foundToken;
 					}
 				}
-				else if (foundToken->data == CommentStop) {
+				else if (foundToken->data[0] == CommentStop) {
 					vm->instructionPointer = &foundToken;
 					InnerInterpreter(vm);
 				}
@@ -642,6 +631,7 @@ exit:
 		"dup i + c@ emit "
 	"loop drop "
 "; "
+
 ;
 
 ForthVm Forth_Initialise(
@@ -732,7 +722,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, SearchForAndPushExecutionTokenCompileTime, "'",         True);
 	AddPrimitiveToDict(&vm, StringLiteral,                             "sr\"",      False);
 	AddPrimitiveToDict(&vm, StringLiteralCompileTime,                  "s\"",       True);
-
+	AddPrimitiveToDict(&vm, EnterWord,                                 "enter",     False);
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
 

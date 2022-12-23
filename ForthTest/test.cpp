@@ -111,9 +111,9 @@ private:
 protected:
     void ComparePutCharOutputToExpected(const std::vector<char>& expected) {
         
-        EXPECT_TRUE(s_charOutput.size() == expected.size()) << std::string(s_charOutput.data());
+        ASSERT_EQ(s_charOutput.size(), expected.size());// << std::string(s_charOutput.data());
         for (int i = 0; i < expected.size(); i++) {
-            EXPECT_TRUE(s_charOutput[i] == expected[i]) << std::string(s_charOutput.data());
+            ASSERT_EQ(s_charOutput[i], expected[i]);// << std::string(s_charOutput.data());
         }
     }
     static void ClearCharOutput() {
