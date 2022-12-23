@@ -52,6 +52,8 @@ typedef enum {
 	TwoSwap,
 	I,
 	J,
+	FullStop,
+	SearchForAndPushExecutionTokenCompileTime,
 
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
@@ -59,7 +61,7 @@ typedef enum {
 // forward declarations
 ExecutionToken SearchForToken(ForthVm* vm);
 Bool LoadNextToken(ForthVm* vm); // to be used at compile time only
-
+void CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
 
 #define PopIntStack(vm) *(--vm->intStackTop)
 #define PushIntStack(vm, val) *(vm->intStackTop++) = val;
@@ -392,6 +394,17 @@ noIncrement:
 		break; case J:
 			cell1 = vm->returnStackTop[-4];
 			PushIntStack(vm, cell1);
+		break; case FullStop:
+			cell1 = PopIntStack(vm);
+			vm->printf("%i", cell1);
+		break; case SearchForAndPushExecutionTokenCompileTime:
+			StringCopy(vm->tokenBuffer, "r'");
+			item = SearchForToken(vm);
+			*(vm->memoryTop++) = item;
+			CompileCStringToForthByteCode(vm, vm->nextTokenStart, ' ');
+			if (!LoadNextToken(vm)) {
+				//return True;
+			}
 		break; default:
 			while (token->type != Primitive) {
 				// push instruction pointer for later return from this non primitive token
@@ -455,14 +468,7 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 						InnerInterpreter(vm, foundToken);
 					}
 					else {
-
-						*(vm->memoryTop++) = foundToken; // compile token
-						if (StringCompare(foundToken->name, "'")) {
-							CompileCStringToForthByteCode(vm, vm->nextTokenStart, ' ');
-							if (!LoadNextToken(vm)) {
-								return;
-							}
-						}
+						*(vm->memoryTop++) = foundToken;
 					}
 				}
 				else if (foundToken->data == CommentStop) {
@@ -610,6 +616,9 @@ exit:
 	"' drop compile "
 "; immediate "
 
+// other misc words
+
+": cr 10 emit ; "
 ;
 
 ForthVm Forth_Initialise(
@@ -670,7 +679,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, Store,                          "!",         False);
 	AddPrimitiveToDict(&vm, ByteFetch,                      "c@",        False);
 	AddPrimitiveToDict(&vm, ByteStore,                      "c!",        False);
-	AddPrimitiveToDict(&vm, SearchForAndPushExecutionToken, "'",         False);
+	AddPrimitiveToDict(&vm, SearchForAndPushExecutionToken, "r'",         False);
 	AddPrimitiveToDict(&vm, ExecuteToken,                   "execute",   False);
 	AddPrimitiveToDict(&vm, Here,                           "here",      False);
 	AddPrimitiveToDict(&vm, Allot,                          "allot",     False);
@@ -696,7 +705,8 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, TwoSwap,                        "2swap",     False);
 	AddPrimitiveToDict(&vm, I,                              "i",         False);
 	AddPrimitiveToDict(&vm, J,                              "j",         False);
-
+	AddPrimitiveToDict(&vm, FullStop,                       ".",         False);
+	AddPrimitiveToDict(&vm, SearchForAndPushExecutionTokenCompileTime, "'", True);
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
 
