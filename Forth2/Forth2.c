@@ -91,45 +91,50 @@ Bool IsPrimitive(ExecutionToken token) {
 	return (token >= 0) && (token < NumPrimitives);
 }
 
-void PrintDictionaryContents(const ForthVm* vm) {
-	// I don't like how long this function is
-	/*const DictionaryItem* item = vm->dictionarySearchStart;
-	int i = 0;
-	StringCopy(vm->tokenBuffer, "return");
-	const DictionaryItem* returnItem = SearchForToken(vm);
-	StringCopy(vm->tokenBuffer, "lit");
-	const DictionaryItem* literalItem = SearchForToken(vm);
-	StringCopy(vm->tokenBuffer, "r'");
-	const DictionaryItem* findWordItem = SearchForToken(vm);
+void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cell** readPtr, const char* endSequence) {
+	int length = *(*readPtr)++;
+	int adjustedLength = length % sizeof(Cell) ? (length / sizeof(Cell)) + 1 : length / sizeof(Cell);
+	const char* charPtr = *readPtr;
+	for (int i = 0; i < length; i++) {
+		vm->putchar(charPtr[i]);
+	}
+	while (*endSequence != '\0') {
+		vm->putchar(*endSequence++);
+	}
+	*readPtr += adjustedLength;
+}
 
+void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
+	vm->printf("\tbytecode: ");
+	while (((DictionaryItem*)*readPtr)->data[0] != Return) {
+		DictionaryItem* token = (DictionaryItem*)(*readPtr++);
+		vm->printf("%s ", token->name);
+		int length;
+		int adjustedLength;
+		switch (token->data[0]) {
+		BCase NumLiteral :
+			vm->printf("%i ", *readPtr++);
+		BCase StringLiteral :
+			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, "\" ");
+		BCase SearchForAndPushExecutionToken:
+			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, " ");
+		}
+	}
+	vm->printf("return\n");
+}
+
+void PrintDictionaryContents(const ForthVm* vm) {
+	const DictionaryItem* item = vm->dictionarySearchStart;
+	int i = 0;
 	while (item->previous != NULL) {
 		vm->printf("%i.) %s \n",i++ ,item->name);
 		vm->printf("\tImmediate: %s\n", item->isImmediate ? "true" : "false");
-		if (item->type == ColonWord) {
-			vm->printf("\ttype: ColonWord\n");
-			vm->printf("\tbytecode:\n\t");
-			Cell* wordStart = item->data;
-			Bool nextIsLit = False;
-			while (*wordStart != returnItem) {
-			    ExecutionToken token = *wordStart++;
-				if (token == literalItem) {
-					vm->printf("%s ", literalItem->name);
-					token = *wordStart++;
-					vm->printf("%i ", token);
-				}
-				else if (token == findWordItem) {
-					vm->printf("%s ", findWordItem->name);
-					ParseInlineBytecodeStringToCStringInTokenBuffer(vm, &wordStart);
-					vm->printf("%s ", vm->tokenBuffer);
-				}
-				else {
-					vm->printf("%s ", token->name);
-				}
-			}
-			vm->printf("%s", "return");
+		if (item->data[0] == EnterWord && !StringCompare(item->name, "enter")) {
+			Cell* readPtr = item->data[1];
+			PrintCompiledWordContents(vm, readPtr);
 		}
-		else if (item->type == Primitive) {
-			vm->printf("\ttype: Primitive\n");
+		else {
+			vm->printf("\tprimitive\n");
 		}
 		vm->printf("\n");
 		item = ((const DictionaryItem*)item->previous);
@@ -137,7 +142,7 @@ void PrintDictionaryContents(const ForthVm* vm) {
 	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
 	size_t capacity = vm->maxMemorySize * sizeof(Cell);
 	vm->printf("memory usage: %i / %i bytes. %f percent memory used\n", dictionaryBytes, capacity,
-		((float)dictionaryBytes / (float) capacity) * 100.0f);*/
+		((float)dictionaryBytes / (float) capacity) * 100.0f);
 }
 
 ExecutionToken SearchForToken(ForthVm* vm) {

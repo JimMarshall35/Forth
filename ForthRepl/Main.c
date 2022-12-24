@@ -22,16 +22,37 @@ void Repl(ForthVm* vm) {
 }
 
 
+const char* fizzbuzzTest = 
+": fizzbuzz "
+    "0 do "
+        "i 0 = if "
+            "0 . cr "
+        "else i 15 % 0 = if "
+            "s\" fizzbuzz\" print cr "
+        "else i 3 % 0 = if "
+            "s\" fizz\" print cr "
+        "else i 5 % 0 = if "
+            "s\" buzz\" print cr "
+        "else "
+            "i . cr "
+        "then "
+        "then "
+        "then "
+        "then "
+    "loop "
+";";
+
 int main()
 {
     Cell mainMem[MainMemorySize];
     Cell intStack[IntStackSize];
     Cell returnStack[ReturnStackSize];
-
+    
     ForthVm vm = Forth_Initialise(
         mainMem, MainMemorySize,
         intStack, IntStackSize,
         returnStack, ReturnStackSize,
         &printf, &putchar);
+    Forth_DoString(&vm, fizzbuzzTest);
     Repl(&vm);
 }
