@@ -646,7 +646,7 @@ void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Boo
 	newItem->previous = vm->dictionarySearchStart;
 	vm->dictionarySearchStart = newItem;
 
-	// point data to the body and compile a single primitive
+	// point data to the body and compile a CallC primitive and C function ptr address
 	vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell); // need to align to make portable
 	newItem->data = vm->memoryTop;
 	newItem->data[0] = CallC;
