@@ -54,8 +54,6 @@ extern "C" {
 		Cell* instructionPointer;
 
 		DictionaryItem* dictionarySearchStart;
-		DictionaryItem* tempDictionaryItemPointer; // points to the start of a definition being compiled, so that it can be linked in only when "revealed"
-		DictionaryItem* TickWordLocation; // used internally for compiler
 
 		// memory for compiled words and variables
 		Cell* memory;
@@ -77,8 +75,9 @@ extern "C" {
 		ForthPrintf printf;
 		ForthPutChar putchar;
 
-		Bool compileNextTokenAsString;
 	}ForthVm;
+
+	typedef Bool(*ForthCFunc)(ForthVm* vm);
 
 	// only obtain a forth Vm like this
 	ForthVm Forth_Initialise(
@@ -92,7 +91,7 @@ extern "C" {
 		ForthPutChar putc);
 
 	Bool Forth_DoString(ForthVm* vm, const char* inputString);
-
+	void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate);
 
 #ifdef __cplusplus
 } // closing brace for extern "C"
