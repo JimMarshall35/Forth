@@ -4,11 +4,9 @@
 #define MainMemorySize (1024 * 32)
 #define IntStackSize 64
 #define ReturnStackSize 64
-#define ScratchPadSize 256
+#define InputBufferSize 10000
 
-
-#define INPUT_BUFFER_SIZE 10000
-static char InputBuffer[INPUT_BUFFER_SIZE];
+static char InputBuffer[InputBufferSize];
 
 void Repl(ForthVm* vm) {
     int numTokens = 0;

@@ -278,7 +278,7 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			PushIntStack(vm, vm->memoryTop);
 		break; case Allot:
 			cell1 = PopIntStack(vm);
-			vm->memoryTop += cell1;
+			((char*)vm->memoryTop) += cell1;
 		break; case Colon:
 			if (vm->currentMode & Forth_InColonDefinitionBit) {
 				vm->printf("you're already in colon compile mode");
@@ -400,14 +400,11 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 				//return True;
 			}
 		break; case StringLiteral:
-			{
-				Cell sizeInBytes = *(vm->instructionPointer++);
-				PushIntStack(vm, sizeInBytes);
-				PushIntStack(vm, vm->instructionPointer);
-			
-				Cell cellsAdvanceRequired = sizeInBytes % sizeof(Cell) ? (sizeInBytes / sizeof(Cell)) + 1 : sizeInBytes / sizeof(Cell);
-				vm->instructionPointer += cellsAdvanceRequired;
-			}
+			cell1 = *(vm->instructionPointer++);
+			PushIntStack(vm, cell1);
+			PushIntStack(vm, vm->instructionPointer);
+			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell);
+			vm->instructionPointer += cell2;
 		break; case StringLiteralCompileTime:
 			StringCopy(vm->tokenBuffer, "sr\"");
 			item = SearchForToken(vm);
@@ -501,8 +498,9 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 
 const char* coreWords =
 // helpers
+": allotCell cell * allot ; "
 
-": compile ( valueToCompile -- ) here ! 1 allot ; "
+": , ( valueToCompile -- ) here ! 1 allotCell ; "
 
 ": cells cell / ; "
 
@@ -521,10 +519,10 @@ const char* coreWords =
 // and these automate the setting of branch offsets by running at compile time as denoted by "immediate"
 
 ": if "
-	"' branch0 compile ( compile a branch0 token ) "
-	"' lit compile ( compile a literal token because the print dictionary function expects one to be there ) "
+	"' branch0 , ( compile a branch0 token ) "
+	"' lit , ( compile a literal token because the print dictionary function expects one to be there ) "
 	"here ( 'here' now points to where the compiled ifs branch offset will go, push it to be back-patched by then or else ) "
-	"1 allot ( advance top of memory to compile next part of the program ) "
+	"1 allotCell ( advance top of memory to compile next part of the program ) "
 "; immediate "
 
 ": then "
@@ -533,10 +531,10 @@ const char* coreWords =
 "; immediate "
 
 ": else "
-	"' branch compile ( compile branch token ) "
-	"' lit compile ( compile a literal token for shits and giggles ) "
+	"' branch , ( compile branch token ) "
+	"' lit , ( compile a literal token for shits and giggles ) "
 	"here ( the top of memory now points to the cell where the branch tokens offset is, push it so it can be back - patched by then ) "
-	"1 allot ( move to the cell after, we will calculate the offset to this cell to back patch the if ) "
+	"1 allotCell ( move to the cell after, we will calculate the offset to this cell to back patch the if ) "
 	"swap ( swap so that the if tokens branch offset address is on top ) "
 	"dup ( two copies of the if's branch offset address are on top, and under that is this elses branch offset address ) "
 	"backPatch "
@@ -548,13 +546,13 @@ const char* coreWords =
 "; immediate "
 
 ": until "
-	"' branch0 compile ( compile a branch0 token ) "
-	"' lit compile ( compile a literal token for shits and giggles ) "
+	"' branch0 , ( compile a branch0 token ) "
+	"' lit , ( compile a literal token for shits and giggles ) "
 	"branchOffsetInCells "
 	"1 - "
 	"-1 * "
 	"here ! "
-	"1 allot ( advance top of memory to compile next part of the program ) "
+	"1 allotCell ( advance top of memory to compile next part of the program ) "
 "; immediate "
 /*
 *  compiler generated do / loop pseudo code
@@ -577,42 +575,42 @@ exit:
 
 */
 ": do "
-	"' branch compile "
-	"' lit compile "
+	"' branch , "
+	"' lit , "
 	"here ( label of initial jump ) "
-	"1 allot "
+	"1 allotCell "
 	"here ( start label in pseudo code above ) "
 	"swap "
-	"' R compile ( compile code to push i onto return stack ) "
-	"' R compile ( compile code to push limit onto return stack ) "
+	"' R , ( compile code to push i onto return stack ) "
+	"' R , ( compile code to push limit onto return stack ) "
 "; immediate "
 
 ": loop "
 	"( compile code to pop i and limit from return stack ) "
-	"' R> compile "
-	"' R> compile "
+	"' R> , "
+	"' R> , "
 
 	"( compile code to increment i ) "
-	"' lit compile "
-	"1 compile "
-	"' + compile "
+	"' lit , "
+	"1 , "
+	"' + , "
 
 	"( we are now at the test label ) "
 	"dup "
 	"backPatch "
 
 	"( compile code to compare i and limit and branch if not equal ) "
-	"' 2dup compile "
-	"' = compile "
-	"' branch0 compile "
+	"' 2dup , "
+	"' = , "
+	"' branch0 , "
 	"here "
-	"' lit compile "
+	"' lit , "
 	"- cell "
-	"/ compile "
+	"/ , "
 
 	"( compile code to clean up i and limit from int stack now that the loop has ended ) "
-	"' drop compile "
-	"' drop compile "
+	"' drop , "
+	"' drop , "
 "; immediate "
 
 // other misc words
