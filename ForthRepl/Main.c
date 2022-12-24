@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "Forth2.h"
+#include "../Forth2/Forth2.h"
 #define NumDictItems 256
 #define MainMemorySize (1024 * 32)
 #define IntStackSize 64

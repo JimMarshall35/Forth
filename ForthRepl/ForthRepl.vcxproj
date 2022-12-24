@@ -141,12 +141,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Forth2\Main.c" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Forth2\Forth2.vcxproj">
       <Project>{2055f8c1-9be5-44b7-bbba-7d5e1300947e}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
