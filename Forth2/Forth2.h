@@ -38,7 +38,7 @@ extern "C" {
 
 	typedef struct {
 		char name[DictionaryItemNameMaxLength];
-		Cell data[2];
+		Cell* data;
 		Bool isImmediate;
 		void* previous;
 	}DictionaryItem;
@@ -70,11 +70,6 @@ extern "C" {
 		Cell* returnStackTop;
 		UCell maxReturnStackSize;
 
-		// for string literals
-		Cell* scratchPadMemory;
-		Cell* scratchPadTop;
-		UCell maxScratchPadSize;
-
 		// for outer interpreter
 		char tokenBuffer[DictionaryItemNameMaxLength + 1]; // holds current token as a c string during text interpretation
 		const char* nextTokenStart;                        // points to the next token during text interpretation
@@ -87,16 +82,12 @@ extern "C" {
 
 	// only obtain a forth Vm like this
 	ForthVm Forth_Initialise(
-		//DictionaryItem* ditionaryMemory,
-		//UCell dictSizeEntries,
 		Cell* memoryForCompiledWordsAndVariables,
 		UCell memorySize,
 		Cell* intStack,
 		UCell intStackSize,
 		Cell* returnStack,
 		UCell returnStackSize,
-		Cell* scratchPad,
-		UCell scratchPadSize,
 		ForthPrintf printf,
 		ForthPutChar putc);
 

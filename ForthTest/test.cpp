@@ -14,12 +14,10 @@ namespace {
 Cell mainMem[MainMemorySize];\
 Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
-Cell scratchPad[ReturnStackSize];\
 ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
     intStack, IntStackSize,\
     returnStack, ReturnStackSize,\
-    scratchPad, ScratchPadSize,\
     print, put);\
 
 class IntegerStackTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<Cell>>> {

@@ -70,15 +70,6 @@ int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
 #define PopReturnStack(vm) *(--vm->returnStackTop)
 #define PushReturnStack(vm, val) *(vm->returnStackTop++) = val
 
-void PushDictionaryWord(ForthVm* vm, const DictionaryItem* item) {
-	DictionaryItem* newItem = (DictionaryItem*)vm->memoryTop;
-	*newItem = *item;
-
-	newItem->previous = vm->dictionarySearchStart;
-	vm->dictionarySearchStart = newItem;
-
-	vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell); // need to align to make portable
-}
 
 DictionaryItem* LastWordAdded(ForthVm* vm) {
 	return (vm->dictionarySearchStart == NULL) ? vm->memory : vm->dictionarySearchStart;
@@ -164,8 +155,18 @@ void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const c
 	DictionaryItem item;
 	StringCopy(item.name, forthName);
 	item.isImmediate = isImmediate;
-	item.data[0] = primitive;
-	PushDictionaryWord(vm, &item);
+	//item.data[0] = primitive;
+	//PushDictionaryWord(vm, &item);
+	DictionaryItem* newItem = (DictionaryItem*)vm->memoryTop;
+	*newItem = item;
+
+	newItem->previous = vm->dictionarySearchStart;
+	vm->dictionarySearchStart = newItem;
+
+	vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell); // need to align to make portable
+	newItem->data = vm->memoryTop;
+	newItem->data[0] = primitive;
+	vm->memoryTop++;
 }
 
 void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
@@ -198,8 +199,7 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 	char* dictionaryNameWritePtr = NULL;
 	do {
 		token = *vm->instructionPointer++;
-noIncrement:
-		switch ((PrimitiveWordTokenValues)token->data[0]) {
+ 		switch ((PrimitiveWordTokenValues)token->data[0]) {
 		// fancy new switch case break formatting technique - on same line as case so you can't forget it
 		break; case Return:
 			vm->instructionPointer = PopReturnStack(vm);
@@ -272,7 +272,7 @@ noIncrement:
 			*((char*)cell1) = (char)cell2;
 		break; case SearchForAndPushExecutionToken:
 			ParseInlineBytecodeStringToCStringInTokenBuffer(vm, &vm->instructionPointer);
-			cell1 = SearchForToken(vm, vm->scratchPadMemory);
+			cell1 = SearchForToken(vm);
 			PushIntStack(vm, cell1);
 		break; case ExecuteToken:
 			// not sure how to implement yet
@@ -295,12 +295,15 @@ noIncrement:
 			item = (DictionaryItem*)vm->memoryTop;
 			vm->tempDictionaryItemPointer = vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
-			StringCopy(vm->tokenBuffer, "enter");
-			item2 = SearchForToken(vm);
-			item->data[0] = EnterWord;
-			item->data[1] = vm->memoryTop + (sizeof(DictionaryItem) / sizeof(Cell));
+			
 			item->isImmediate = False;
 			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));
+			item->data = vm->memoryTop;
+			item->data[0] = EnterWord;
+			item->data[1] = &item->data[2];
+			vm->memoryTop += 2;
+			item->previous = vm->dictionarySearchStart;
+			vm->dictionarySearchStart = item;
 			// don't increment dictionaryTop until the semicolon
 			LoadNextToken(vm);
 		break; case SemiColon:
@@ -310,11 +313,6 @@ noIncrement:
 			// compile a return token
 			StringCopy(vm->tokenBuffer, "return");
 			*(vm->memoryTop++) = SearchForToken(vm);
-			// "reveal" the new word, linking it into the dictionary
-			item = vm->tempDictionaryItemPointer;
-			item->previous = vm->dictionarySearchStart;
-			vm->dictionarySearchStart = item;
-			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));//need to align somehow but not now i know it will be 
 			// take us out of colon definition mode and its child mode, compile mode
 			vm->currentMode &= ~(Forth_InColonDefinitionBit);
 			vm->currentMode &= ~(Forth_CompileBit);
@@ -464,7 +462,6 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 	}
 	while (*vm->tokenBuffer != "\0") {
 		ExecutionToken foundToken = SearchForToken(vm);
-		vm->scratchPadTop = vm->scratchPadMemory;
 		if (foundToken != NULL) {
 			if (vm->currentMode & Forth_InColonDefinitionBit) {
 				if ((vm->currentMode & Forth_CommentFlag) == 0) {
@@ -641,8 +638,6 @@ ForthVm Forth_Initialise(
 	size_t intStackSize,
 	Cell* returnStack,
 	size_t returnStackSize,
-	Cell* scratchPad,
-	UCell scratchPadSize,
 	ForthPrintf printf,
 	ForthPutChar putc) {
 
@@ -663,10 +658,6 @@ ForthVm Forth_Initialise(
 	vm.returnStack = returnStack;
 	vm.returnStackTop = vm.returnStack;
 	vm.maxReturnStackSize = returnStackSize;
-
-	vm.scratchPadMemory = scratchPad;
-	vm.scratchPadTop = vm.scratchPadMemory;
-	vm.maxScratchPadSize = scratchPadSize;
 
 	vm.printf = printf;
 	vm.putchar = putc;
