@@ -25,7 +25,6 @@ typedef enum {
 	ByteFetch,
 	ByteStore,
 	SearchForAndPushExecutionToken,
-	ExecuteToken,
 	Here,
 	Allot,
 	Colon,
@@ -275,8 +274,6 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			ParseInlineBytecodeStringToCStringInTokenBuffer(vm, &vm->instructionPointer);
 			cell1 = SearchForToken(vm);
 			PushIntStack(vm, cell1);
-		break; case ExecuteToken:
-			// not sure how to implement yet
 		break; case Here:
 			PushIntStack(vm, vm->memoryTop);
 		break; case Allot:
@@ -633,15 +630,12 @@ exit:
 
 
 Bool testFunc(ForthVm* vm) {
-	Cell c = PopIntStack(vm);
+	vm->printf("hello world\n");
 	return False;
 }
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
-	// can't seem to call the printf function pointers on the vm from a c function registerd this way
-	// not sure why - not really the point of this function anyway as these functions are defined in c anyway -
-	// probably missing something obvious - other operations on the vm work (pushing and
-	// popping from stack, ect.) TODO: write tests
+	// TODO: write tests
 	DictionaryItem item;
 	StringCopy(item.name, name);
 	item.isImmediate = isImmediate;
@@ -711,7 +705,6 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, ByteFetch,                                 "c@",        False);
 	AddPrimitiveToDict(&vm, ByteStore,                                 "c!",        False);
 	AddPrimitiveToDict(&vm, SearchForAndPushExecutionToken,            "r'",        False);
-	AddPrimitiveToDict(&vm, ExecuteToken,                              "execute",   False);
 	AddPrimitiveToDict(&vm, Here,                                      "here",      False);
 	AddPrimitiveToDict(&vm, Allot,                                     "allot",     False);
 	AddPrimitiveToDict(&vm, Colon,                                     ":",         False);
@@ -743,7 +736,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, EnterWord,                                 "enter",     False);
 	AddPrimitiveToDict(&vm, CallC,                                     "call",      False); // it's not really necessary to add these last two as primitives here but I have done anyway
 
-	//Forth_RegisterCFunc(&vm, &testFunc, "testc", False);
+	Forth_RegisterCFunc(&vm, &testFunc, "testc", False);
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
 

@@ -29,26 +29,15 @@ void Repl(ForthVm* vm) {
 
 int main()
 {
-    //const char* string1 = "hello world";
-    //const char* string2 = "hello world";
-    //const char* string3 = "hello world!";
-    //const char* string4 = "hello World";
-
-    //bool oneAndtwo = StringCompare(string1, string2);
-    //bool oneAndThree = StringCompare(string1, string3);
-    //bool oneAndFour = StringCompare(string1, string4);
-
     DictionaryItem dictItems[NumDictItems];
     Cell mainMem[MainMemorySize];
     Cell intStack[IntStackSize];
     Cell returnStack[ReturnStackSize];
-    Cell scratchPad[ReturnStackSize];
 
     ForthVm vm = Forth_Initialise(
         mainMem, MainMemorySize,
         intStack, IntStackSize,
         returnStack, ReturnStackSize,
-        scratchPad, ScratchPadSize,
         &printf, &putchar);
     Repl(&vm);
 }
