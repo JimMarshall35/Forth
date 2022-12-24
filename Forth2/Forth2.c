@@ -3,7 +3,7 @@
 
 /************************************\
  *   Forth - Jim Marshall - 2022    *
- *   jimmarshall35@gmail.com        *
+ *     jimmarshall35@gmail.com      *
 \************************************/
 
 typedef enum {
@@ -200,30 +200,29 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 	do {
 		token = *vm->instructionPointer++;
  		switch ((PrimitiveWordTokenValues)token->data[0]) {
-		// fancy new switch case break formatting technique - on same line as case so you can't forget it
-		break; case Return:
+		BCase Return:
 			vm->instructionPointer = PopReturnStack(vm);
-		break; case Add:
+		BCase Add:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2 + cell1);
-		break; case Subtract:
+		BCase Subtract:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2 - cell1);
-		break; case Divide:
+		BCase Divide:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2 / cell1);
-		break; case Multiply:
+		BCase Multiply:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2 * cell1);
-		break; case Modulo:
+		BCase Modulo:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2 % cell1);
-		break; case Branch0:
+		BCase Branch0:
 			cell1 = PopIntStack(vm);
 			if (cell1 == 0) {
 				int offset = *(vm->instructionPointer + 1);
@@ -232,54 +231,54 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			else {
 				vm->instructionPointer += 2; // skip over offset
 			}
-		break; case Branch:
+		BCase Branch:
 			vm->instructionPointer += *(vm->instructionPointer + 1);
-		break; case Dup:
+		BCase Dup:
 			cell1 = PopIntStack(vm);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell1);
-		break; case Swap:
+		BCase Swap:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell2);
-		break; case Rot:
+		BCase Rot:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			cell3 = PopIntStack(vm);
 			PushIntStack(vm, cell2);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell3);
-		break; case NumLiteral:
+		BCase NumLiteral:
 			PushIntStack(vm, *vm->instructionPointer); // push literal value at ip
 			vm->instructionPointer++;                  // skip over literal value
-		break; case Emit:
+		BCase Emit:
 			cell1 = PopIntStack(vm);
 			vm->putchar(cell1);
-		break; case Fetch:
+		BCase Fetch:
 			cell1 = PopIntStack(vm);
 			PushIntStack(vm, *((Cell*)cell1));
-		break; case Store:
+		BCase Store:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			*((Cell*)cell1) = cell2;
-		break; case ByteFetch:
+		BCase ByteFetch:
 			cell1 = PopIntStack(vm);
 			PushIntStack(vm, ((Cell)*((char*)cell1)));
-		break; case ByteStore:
+		BCase ByteStore:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			*((char*)cell1) = (char)cell2;
-		break; case SearchForAndPushExecutionToken:
+		BCase SearchForAndPushExecutionToken:
 			ParseInlineBytecodeStringToCStringInTokenBuffer(vm, &vm->instructionPointer);
 			cell1 = SearchForToken(vm);
 			PushIntStack(vm, cell1);
-		break; case Here:
+		BCase Here:
 			PushIntStack(vm, vm->memoryTop);
-		break; case Allot:
+		BCase Allot:
 			cell1 = PopIntStack(vm);
 			((char*)vm->memoryTop) += cell1;
-		break; case Colon:
+		BCase Colon:
 			if (vm->currentMode & Forth_InColonDefinitionBit) {
 				vm->printf("you're already in colon compile mode");
 				return True;
@@ -301,7 +300,7 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
 			LoadNextToken(vm);
-		break; case SemiColon:
+		BCase SemiColon:
 			if ((vm->currentMode & Forth_InColonDefinitionBit) == 0) {
 				vm->printf("you're not in colon compile mode");
 			}
@@ -311,17 +310,17 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			// take us out of colon definition mode and its child mode, compile mode
 			vm->currentMode &= ~(Forth_InColonDefinitionBit);
 			vm->currentMode &= ~(Forth_CompileBit);
-		break; case Show:
+		BCase Show:
 			PrintIntStack(vm);
 			PrintReturnStack(vm);
-		break; case ShowWords:
+		BCase ShowWords:
 			PrintDictionaryContents(vm);
-		break; case Immediate:
+		BCase Immediate:
 			if (vm->currentMode & Forth_InColonDefinitionBit) {
 				vm->printf("you can't use the word \"immediate\" when compiling a colon word");
 			}
 			LastWordAdded(vm)->isImmediate = True;
-		break; case Create:
+		BCase Create:
 			item = (DictionaryItem*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
 			vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell);
@@ -329,51 +328,51 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			item->data[1] = vm->memoryTop;
 			LoadNextToken(vm);
 
-		break; case Equals:
+		BCase Equals:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, (cell1 == cell2) ? -1 : 0);
-		break; case GreaterThan:
+		BCase GreaterThan:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, (cell2 > cell1) ? -1 : 0);
-		break; case LessThan:
+		BCase LessThan:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, (cell2 < cell1) ? -1 : 0);
-		break; case And:
+		BCase And:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, ((cell2 != 0) && (cell1 != 0)) ? -1 : 0);
-		break; case Or:
+		BCase Or:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, ((cell2 != 0) || (cell1 != 0)) ? -1 : 0);
-		break; case Not:
+		BCase Not:
 			cell1 = PopIntStack(vm);
 			PushIntStack(vm, (cell1 != 0) ? 0 : -1);
-		break; case CellSize:
+		BCase CellSize:
 			PushIntStack(vm, sizeof(Cell));
-		break; case CommentStart:
+		BCase CommentStart:
 			vm->currentMode |= Forth_CommentFlag;
-		break; case CommentStop:
+		BCase CommentStop:
 			vm->currentMode &= ~(Forth_CommentFlag);
-		break; case Drop:
+		BCase Drop:
 			PopIntStack(vm);
-		break; case PushReturnStackWord:
+		BCase PushReturnStackWord:
 			cell1 = PopIntStack(vm);
 			PushReturnStack(vm, cell1);
-		break; case PopReturnStackWord:
+		BCase PopReturnStackWord:
 			cell1 = PopReturnStack(vm);
 			PushIntStack(vm, cell1);
-		break; case TwoDup:
+		BCase TwoDup:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell2);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell2);
 			PushIntStack(vm, cell1);
-		break; case TwoSwap:
+		BCase TwoSwap:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			cell3 = PopIntStack(vm);
@@ -382,16 +381,16 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell4);
 			PushIntStack(vm, cell3);
-		break; case I: // these two could be done in forth but we (I) want them to be fast
+		BCase I: // these two could be done in forth but we (I) want them to be fast
 			cell1 = vm->returnStackTop[-2];
 			PushIntStack(vm, cell1);
-		break; case J:
+		BCase J:
 			cell1 = vm->returnStackTop[-4];
 			PushIntStack(vm, cell1);
-		break; case FullStop:
+		BCase FullStop:
 			cell1 = PopIntStack(vm);
 			vm->printf("%i", cell1);
-		break; case SearchForAndPushExecutionTokenCompileTime:
+		BCase SearchForAndPushExecutionTokenCompileTime:
 			StringCopy(vm->tokenBuffer, "r'");
 			item = SearchForToken(vm);
 			*(vm->memoryTop++) = item;
@@ -399,22 +398,22 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			if (!LoadNextToken(vm)) {
 				//return True;
 			}
-		break; case StringLiteral:
+		BCase StringLiteral:
 			cell1 = *(vm->instructionPointer++);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, vm->instructionPointer);
 			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell);
 			vm->instructionPointer += cell2;
-		break; case StringLiteralCompileTime:
+		BCase StringLiteralCompileTime:
 			StringCopy(vm->tokenBuffer, "sr\"");
 			item = SearchForToken(vm);
 			*vm->memoryTop++ = item;
 			cell1 = CompileCStringToForthByteCode(vm, vm->nextTokenStart, '"');
 			vm->nextTokenStart += cell1 + 2;
-		break; case EnterWord:
+		BCase EnterWord:
 			PushReturnStack(vm, vm->instructionPointer);
 			vm->instructionPointer = token->data[1];
-		break; case CallC:
+		BCase CallC:
 			((ForthCFunc)token->data[1])(vm);
 		}
 		
