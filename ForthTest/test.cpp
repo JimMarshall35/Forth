@@ -10,7 +10,7 @@ namespace {
 #define ReturnStackSize 64
 #define ScratchPadSize 256
 
-#define TestSetup(print, put) DictionaryItem dictItems[NumDictItems];\
+#define TestSetup(print, put) \
 Cell mainMem[MainMemorySize];\
 Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\

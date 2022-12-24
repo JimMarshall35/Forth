@@ -1,5 +1,3 @@
-// Forth2.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 #include <stdio.h>
 #include "Forth2.h"
 #define NumDictItems 256
@@ -15,7 +13,6 @@ static char InputBuffer[INPUT_BUFFER_SIZE];
 void Repl(ForthVm* vm) {
     int numTokens = 0;
     do {
-        //memset(InputBuffer, 0, sizeof(int) * INPUT_BUFFER_SIZE);
         printf("[Forth]>>> ");
         gets(InputBuffer);
         Bool result = Forth_DoString(vm, InputBuffer);
@@ -29,7 +26,6 @@ void Repl(ForthVm* vm) {
 
 int main()
 {
-    DictionaryItem dictItems[NumDictItems];
     Cell mainMem[MainMemorySize];
     Cell intStack[IntStackSize];
     Cell returnStack[ReturnStackSize];
