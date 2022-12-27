@@ -113,9 +113,11 @@ static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 		int length;
 		int adjustedLength;
 		switch (token->data[0]) {
-		BCase NumLiteral :
+		BCase NumLiteral:
+		case Branch:
+		case Branch0: // intentional fallthrough
 			vm->printf("%i ", *readPtr++);
-		BCase StringLiteral :
+		BCase StringLiteral:
 			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, "\" ");
 		BCase SearchForAndPushExecutionToken:
 			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, " ");
@@ -629,12 +631,6 @@ exit:
 
 ;
 
-
-static Bool testFunc(ForthVm* vm) {
-	vm->printf("hello world\n");
-	return False;
-}
-
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
 	// TODO: write tests
 	DictionaryItem item;
@@ -740,7 +736,6 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, CallC,                                     "call",      False); // it's not really necessary to add these last two as primitives here but I have done anyway
 	AddPrimitiveToDict(&vm, Key,                                       "key",       False);
 
-	Forth_RegisterCFunc(&vm, &testFunc, "testc", False);
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
 
