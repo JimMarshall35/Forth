@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <conio.h>
 #include "../Forth2/Forth2.h"
-#define NumDictItems 256
 #define MainMemorySize (1024 * 32)
 #define IntStackSize 64
 #define ReturnStackSize 64

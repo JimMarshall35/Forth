@@ -12,30 +12,16 @@ extern "C" {
 #define DictionarySize 512
 	typedef int32_t Cell;
 	typedef uint32_t UCell;
-	//typedef Cell ExecutionToken;
 
-	
-	typedef void* (*AllocateHeap)(int numBytes);
-	typedef void (*FreeHeap)(void* memory);
-	typedef void (*ReallocateHeap)(void* memory, int numBytes);
-	typedef int (*ForthPrintf)(const char* format, ...);
 	typedef int (*ForthPrintf)(const char* format, ...);
 	typedef int (*ForthPutChar)(int val);
 	typedef int (*ForthGetChar)(void);
-
-	typedef enum {
-		ColonWord,
-		Variable,
-		Constant,
-		Primitive,
-	}DictionaryEntryType;
 	
 	typedef enum {
 		Forth_CompileBit = 1, 
 		Forth_InColonDefinitionBit = 2,
 		Forth_CommentFlag = 4
 	}ForthMode;
-
 
 	typedef struct {
 		char name[DictionaryItemNameMaxLength];
@@ -88,7 +74,7 @@ extern "C" {
 		UCell intStackSize,
 		Cell* returnStack,
 		UCell returnStackSize,
-		ForthPrintf printf,
+		ForthPrintf printf, // want to eventually remove this dependency - used to print numbers at the moment
 		ForthPutChar putc,
 		ForthGetChar getc);
 

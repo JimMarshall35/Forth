@@ -199,10 +199,10 @@ static void PrintReturnStack(const ForthVm* vm) {
 	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: [ ");
 }
 
-static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don't push to return stack just execute the token tokenVal
+static Bool InnerInterpreter(ForthVm* vm){
 	Cell* initialReturnStack = vm->returnStackTop;
 	ExecutionToken token, item, item2;
-	Cell cell1, cell2, cell3, cell4; // top three of the stack commonly used, can't declare locals in case
+	Cell cell1, cell2, cell3, cell4; // top four of the stack commonly used, can't declare locals in case
 	const char* nextTokenReadPtr = NULL;
 	char* dictionaryNameWritePtr = NULL;
 	do {
@@ -258,8 +258,8 @@ static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mo
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell3);
 		BCase NumLiteral:
-			PushIntStack(vm, *vm->instructionPointer); // push literal value at ip
-			vm->instructionPointer++;                  // skip over literal value
+			PushIntStack(vm, *vm->instructionPointer);
+			vm->instructionPointer++;
 		BCase Emit:
 			cell1 = PopIntStack(vm);
 			vm->putchar(cell1);
@@ -407,11 +407,10 @@ static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mo
 				//return True;
 			}
 		BCase StringLiteral:
-			
-			cell1 = *(vm->instructionPointer++);
+			cell1 = *(vm->instructionPointer++); // size of string in bytes
 			PushIntStack(vm, cell1);
-			PushIntStack(vm, vm->instructionPointer);
-			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell);
+			PushIntStack(vm, vm->instructionPointer); // ptr to string
+			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell); // number to advance ip by
 			vm->instructionPointer += cell2;
 		BCase StringLiteralCompileTime:
 			StringCopy(vm->tokenBuffer, "sr\"");
