@@ -11,7 +11,7 @@ namespace {
 #define ReturnStackSize 64
 #define ScratchPadSize 256
 
-#define TestSetup(print, put, getc) \
+#define TestSetup(print, put, get) \
 Cell mainMem[MainMemorySize];\
 Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
@@ -19,7 +19,7 @@ ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
     intStack, IntStackSize,\
     returnStack, ReturnStackSize,\
-    print, put, getc);\
+    print, put, get);\
 
 class IntegerStackTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<Cell>>> {
 protected:
@@ -86,8 +86,7 @@ INSTANTIATE_TEST_CASE_P(
         // - I've made branches take up less code by not needing to have a literal token before the branch
         // value - as a result you can't use them like this and I don't want to add logic to not compile literal 
         // tokens if the previous token was a branch, ect, I'd rather keep it simple and only use branch and branch0
-        // by having higher level immediate words compile them into ifs, do's, ect, no need to expose them for use like this.
-        // todo - add some kind of error checking in perhaps
+        // by having other immediate words compile them into f
         //Case(": test branch0 4 420 ; 1 test", Stack{ 420 }),
         //Case(": test branch0 4 420 ; 0 test", Stack{  }),
         //Case(": test branch0 7 1 2 + ; 1 test", Stack{ 3 }),
@@ -264,3 +263,98 @@ INSTANTIATE_TEST_CASE_P(
         Case(": test 10 R R> ; test", RStack{  }, Stack{ 10 })
 
     ));
+
+
+class RegisterCFuncTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<char>, std::vector<Cell>, ForthCFunc>> {
+private:
+    static std::vector<char> s_charOutput;
+
+protected:
+    void ComparePutCharOutputToExpected(const std::vector<char>& expected) {
+
+        ASSERT_EQ(s_charOutput.size(), expected.size());// << std::string(s_charOutput.data());
+        for (int i = 0; i < expected.size(); i++) {
+            ASSERT_EQ(s_charOutput[i], expected[i]);// << std::string(s_charOutput.data());
+        }
+    }
+    static void ClearCharOutput() {
+        s_charOutput.clear();
+    }
+    static int MockPutChar(int charVal) {
+        s_charOutput.push_back((char)charVal);
+        return 0;
+    }
+    static int MockPrintf(const char* format, ...) {
+        char buffer[1024];
+        va_list args;
+        va_start(args, format);
+        vsprintf_s(buffer, format, args);
+        const char* readPtr = buffer;
+        while (*readPtr != '\0') {
+            s_charOutput.push_back(*readPtr++);
+        }
+        return 1;
+    }
+    void CompareStackToExpected(const ForthVm& vm, const std::vector<Cell>& expected) {
+        size_t stackSize = vm.intStackTop - vm.intStack;
+        ASSERT_EQ(stackSize, expected.size());
+        for (int i = 0; i < expected.size(); i++) {
+            ASSERT_EQ(vm.intStack[i], expected[i]);
+        }
+    }
+};
+
+std::vector<char> RegisterCFuncTests::s_charOutput;
+
+TEST_P(RegisterCFuncTests, CorrectValsFromPutCharAndStackWhenCFuncCalled) {
+    // arrange
+    TestSetup(&MockPrintf, &MockPutChar, &_getch);
+    ClearCharOutput();
+
+    std::string stringToDo = std::get<0>(GetParam());
+    auto expectedChars = std::get<1>(GetParam());
+    auto expectedStack = std::get<2>(GetParam());
+    auto cFunc = std::get<3>(GetParam());
+
+    // act
+    Forth_RegisterCFunc(&vm, cFunc, "test", False);
+    Forth_DoString(&vm, stringToDo.c_str());
+
+    // assert
+    ComparePutCharOutputToExpected(expectedChars);
+    CompareStackToExpected(vm, expectedStack);
+}
+
+Bool Test1(ForthVm* vm) {
+    vm->putchar('j');
+    vm->putchar('i');
+    vm->putchar('m');
+    return True;
+}
+
+Bool Test2(ForthVm* vm) {
+    *(vm->intStackTop++) = 1;
+    *(vm->intStackTop++) = 2;
+    *(vm->intStackTop++) = 3;
+    return True;
+}
+
+Bool Test3(ForthVm* vm) {
+    Cell cell1 = *(--vm->intStackTop);
+    Cell cell2 = *(--vm->intStackTop);
+    vm->printf("%i", cell1);
+    vm->printf("%i", cell2);
+    return True;
+}
+
+INSTANTIATE_TEST_CASE_P(
+    CorrectValsFromPutCharAndStackWhenCFuncCalled,
+    RegisterCFuncTests,
+    ::testing::Values(
+        // emit
+        Case("test", Chars{ 'j','i','m' }, Stack{}, &Test1),
+        Case("test", Chars{}, Stack{ 1, 2, 3 }, &Test2),
+        Case("4 8 test", Chars{'8', '4'}, Stack{}, &Test3)
+    ));
+
+

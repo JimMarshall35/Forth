@@ -233,7 +233,7 @@ static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mo
 		BCase Branch0:
 			cell1 = PopIntStack(vm);
 			if (cell1 == 0) {
-				int offset = *vm->instructionPointer;
+				Cell offset = *vm->instructionPointer;
 				vm->instructionPointer += offset;
 			}
 			else {
@@ -336,7 +336,6 @@ static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mo
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
 			LoadNextToken(vm);
-
 		BCase Equals:
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
@@ -428,7 +427,6 @@ static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mo
 		BCase Key:
 			PushIntStack(vm, vm->getchar());
 		}
-		
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
 }
@@ -575,9 +573,9 @@ start:
 	retrieve indexes from return stack // loop starts here
 	add one to index
 test:
-	if index has not reached the end, jump to start //ends here
+	if index has not reached the end, jump to start
 exit:
-	clean up of indexes
+	clean up of indexes //ends here
 	rest of code
 
 */
