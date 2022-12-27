@@ -55,14 +55,15 @@ typedef enum {
 	StringLiteralCompileTime,
 	EnterWord,
 	CallC,
+	Key,
 
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
 
 // forward declarations
-ExecutionToken SearchForToken(ForthVm* vm);
-Bool LoadNextToken(ForthVm* vm); // to be used at compile time only
-int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
+static ExecutionToken SearchForToken(ForthVm* vm);
+static Bool LoadNextToken(ForthVm* vm); // to be used at compile time only
+static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
 
 #define PopIntStack(vm) *(--vm->intStackTop)
 #define PushIntStack(vm, val) *(vm->intStackTop++) = val;
@@ -71,11 +72,11 @@ int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
 #define PushReturnStack(vm, val) *(vm->returnStackTop++) = val
 
 
-DictionaryItem* LastWordAdded(ForthVm* vm) {
+static DictionaryItem* LastWordAdded(ForthVm* vm) {
 	return (vm->dictionarySearchStart == NULL) ? vm->memory : vm->dictionarySearchStart;
 }
 
-Bool ParseInlineBytecodeStringToCStringInTokenBuffer(ForthVm* vm, Cell** readPtr) {
+static Bool ParseInlineBytecodeStringToCStringInTokenBuffer(ForthVm* vm, Cell** readPtr) {
 	Cell sizeInBytes = *((*readPtr)++);
 	char* charCastDest = vm->tokenBuffer;
 	char* charCast = (char*)*readPtr;
@@ -87,11 +88,11 @@ Bool ParseInlineBytecodeStringToCStringInTokenBuffer(ForthVm* vm, Cell** readPtr
 	*readPtr += cellsAdvanceRequired;
 }
 
-Bool IsPrimitive(ExecutionToken token) {
+static Bool IsPrimitive(ExecutionToken token) {
 	return (token >= 0) && (token < NumPrimitives);
 }
 
-void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cell** readPtr, const char* endSequence) {
+static void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cell** readPtr, const char* endSequence) {
 	int length = *(*readPtr)++;
 	int adjustedLength = length % sizeof(Cell) ? (length / sizeof(Cell)) + 1 : length / sizeof(Cell);
 	const char* charPtr = *readPtr;
@@ -104,7 +105,7 @@ void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cell** rea
 	*readPtr += adjustedLength;
 }
 
-void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
+static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 	vm->printf("\tbytecode: ");
 	while (((DictionaryItem*)*readPtr)->data[0] != Return) {
 		DictionaryItem* token = (DictionaryItem*)(*readPtr++);
@@ -123,7 +124,7 @@ void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 	vm->printf("return\n");
 }
 
-void PrintDictionaryContents(const ForthVm* vm) {
+static void PrintDictionaryContents(const ForthVm* vm) {
 	const DictionaryItem* item = vm->dictionarySearchStart;
 	int i = 0;
 	while (item->previous != NULL) {
@@ -145,7 +146,7 @@ void PrintDictionaryContents(const ForthVm* vm) {
 		((float)dictionaryBytes / (float) capacity) * 100.0f);
 }
 
-ExecutionToken SearchForToken(ForthVm* vm) {
+static ExecutionToken SearchForToken(ForthVm* vm) {
 	DictionaryItem* item = vm->dictionarySearchStart;
 	while (item != NULL) {
 		if (StringCompare(item->name, vm->tokenBuffer)) {
@@ -156,7 +157,7 @@ ExecutionToken SearchForToken(ForthVm* vm) {
 	return NULL;
 }
 
-void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const char* forthName, Bool isImmediate) {
+static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const char* forthName, Bool isImmediate) {
 	DictionaryItem item;
 	StringCopy(item.name, forthName);
 	item.isImmediate = isImmediate;
@@ -174,7 +175,7 @@ void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const c
 	vm->memoryTop++;
 }
 
-void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
+static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
 	vm->printf(stackName);
 	Cell* readPtr = stack;
 	while (readPtr != stackTop) {
@@ -188,15 +189,15 @@ void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stac
 	vm->printf(" ]\n");
 }
 
-void PrintIntStack(const ForthVm* vm) {
+static void PrintIntStack(const ForthVm* vm) {
 	PrintStack(vm, vm->intStack, vm->intStackTop, "int stack:    [ ");
 }
 
-void PrintReturnStack(const ForthVm* vm) {
+static void PrintReturnStack(const ForthVm* vm) {
 	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: [ ");
 }
 
-Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don't push to return stack just execute the token tokenVal
+static Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don't push to return stack just execute the token tokenVal
 	Cell* initialReturnStack = vm->returnStackTop;
 	ExecutionToken token, item, item2;
 	Cell cell1, cell2, cell3, cell4; // top three of the stack commonly used, can't declare locals in case
@@ -230,14 +231,14 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 		BCase Branch0:
 			cell1 = PopIntStack(vm);
 			if (cell1 == 0) {
-				int offset = *(vm->instructionPointer + 1);
+				int offset = *vm->instructionPointer;
 				vm->instructionPointer += offset;
 			}
 			else {
-				vm->instructionPointer += 2; // skip over offset
+				vm->instructionPointer++; // skip over offset
 			}
 		BCase Branch:
-			vm->instructionPointer += *(vm->instructionPointer + 1);
+			vm->instructionPointer += *vm->instructionPointer;
 		BCase Dup:
 			cell1 = PopIntStack(vm);
 			PushIntStack(vm, cell1);
@@ -329,8 +330,9 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			item = (DictionaryItem*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
 			vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell);
-			item->data[0] = EnterWord;
-			item->data[1] = vm->memoryTop;
+			item->data = vm->memoryTop;
+			item->previous = vm->dictionarySearchStart;
+			vm->dictionarySearchStart = item;
 			LoadNextToken(vm);
 
 		BCase Equals:
@@ -404,6 +406,7 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 				//return True;
 			}
 		BCase StringLiteral:
+			
 			cell1 = *(vm->instructionPointer++);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, vm->instructionPointer);
@@ -420,13 +423,15 @@ Bool InnerInterpreter(ForthVm* vm){// iftokenVal < 0, then interpreter mode, don
 			vm->instructionPointer = token->data[1];
 		BCase CallC:
 			((ForthCFunc)token->data[1])(vm);
+		BCase Key:
+			PushIntStack(vm, vm->getchar());
 		}
 		
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
 }
 
-int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
+static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
 	Cell* length = vm->memoryTop++; // save to back-patch with length afterwards;
 	const char* readPtr = string;
 	char* writePtr = (char*)vm->memoryTop;
@@ -441,7 +446,7 @@ int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
 	return stringLen;
 }
 
-Bool LoadNextToken(ForthVm* vm) {
+static Bool LoadNextToken(ForthVm* vm) {
 	int len = CopyNextToken(vm->nextTokenStart, vm->tokenBuffer);
 	vm->nextTokenStart += len;
 	while (*vm->nextTokenStart == ' ')vm->nextTokenStart++;
@@ -453,8 +458,10 @@ Bool LoadNextToken(ForthVm* vm) {
 	}
 }
 
-void OuterInterpreter(ForthVm* vm, const char* input) {
+static void OuterInterpreter(ForthVm* vm, const char* input) {
 	vm->nextTokenStart = input;
+	StringCopy(vm->tokenBuffer, "lit");
+	ExecutionToken lit = SearchForToken(vm);
 	if (!LoadNextToken(vm)) {
 		return;
 	}
@@ -485,8 +492,7 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 			Cell converted = atoi(vm->tokenBuffer);
 			if (vm->currentMode & Forth_CompileBit) {
 				// compile number literal
-				StringCopy(vm->tokenBuffer, "lit");
-				*(vm->memoryTop++) = SearchForToken(vm);;
+				*(vm->memoryTop++) = lit;
 				*(vm->memoryTop++) = converted;
 			}
 			else {
@@ -500,7 +506,7 @@ void OuterInterpreter(ForthVm* vm, const char* input) {
 	}
 }
 
-const char* coreWords =
+static const char* coreWords =
 // helpers
 ": allotCell cell * allot ; "
 
@@ -515,7 +521,6 @@ const char* coreWords =
 
 ": backPatch ( addressOfBranch -- ) "
 	"branchOffsetInCells "
-	"1 + ( add one cell for some reasom ) "
 	"swap ! ( store the offset at the address to be back-patched ) "
 "; "
 
@@ -524,7 +529,6 @@ const char* coreWords =
 
 ": if "
 	"' branch0 , ( compile a branch0 token ) "
-	"' lit , ( compile a literal token because the print dictionary function expects one to be there ) "
 	"here ( 'here' now points to where the compiled ifs branch offset will go, push it to be back-patched by then or else ) "
 	"1 allotCell ( advance top of memory to compile next part of the program ) "
 "; immediate "
@@ -536,7 +540,6 @@ const char* coreWords =
 
 ": else "
 	"' branch , ( compile branch token ) "
-	"' lit , ( compile a literal token for shits and giggles ) "
 	"here ( the top of memory now points to the cell where the branch tokens offset is, push it so it can be back - patched by then ) "
 	"1 allotCell ( move to the cell after, we will calculate the offset to this cell to back patch the if ) "
 	"swap ( swap so that the if tokens branch offset address is on top ) "
@@ -551,9 +554,7 @@ const char* coreWords =
 
 ": until "
 	"' branch0 , ( compile a branch0 token ) "
-	"' lit , ( compile a literal token for shits and giggles ) "
 	"branchOffsetInCells "
-	"1 - "
 	"-1 * "
 	"here ! "
 	"1 allotCell ( advance top of memory to compile next part of the program ) "
@@ -580,7 +581,6 @@ exit:
 */
 ": do "
 	"' branch , "
-	"' lit , "
 	"here ( label of initial jump ) "
 	"1 allotCell "
 	"here ( start label in pseudo code above ) "
@@ -608,7 +608,6 @@ exit:
 	"' = , "
 	"' branch0 , "
 	"here "
-	"' lit , "
 	"- cell "
 	"/ , "
 
@@ -631,7 +630,7 @@ exit:
 ;
 
 
-Bool testFunc(ForthVm* vm) {
+static Bool testFunc(ForthVm* vm) {
 	vm->printf("hello world\n");
 	return False;
 }
@@ -664,7 +663,8 @@ ForthVm Forth_Initialise(
 	Cell* returnStack,
 	size_t returnStackSize,
 	ForthPrintf printf,
-	ForthPutChar putc) {
+	ForthPutChar putc,
+	ForthGetChar getc) {
 
 	ForthVm vm;
 	
@@ -686,6 +686,7 @@ ForthVm Forth_Initialise(
 
 	vm.printf = printf;
 	vm.putchar = putc;
+	vm.getchar = getc;
 
 	vm.instructionPointer = vm.memory;
 
@@ -737,6 +738,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, StringLiteralCompileTime,                  "s\"",       True);
 	AddPrimitiveToDict(&vm, EnterWord,                                 "enter",     False);
 	AddPrimitiveToDict(&vm, CallC,                                     "call",      False); // it's not really necessary to add these last two as primitives here but I have done anyway
+	AddPrimitiveToDict(&vm, Key,                                       "key",       False);
 
 	Forth_RegisterCFunc(&vm, &testFunc, "testc", False);
 	// load core vocabulary of words that are not primitive, ie are defined in forth

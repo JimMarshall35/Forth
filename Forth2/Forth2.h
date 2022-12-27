@@ -21,6 +21,7 @@ extern "C" {
 	typedef int (*ForthPrintf)(const char* format, ...);
 	typedef int (*ForthPrintf)(const char* format, ...);
 	typedef int (*ForthPutChar)(int val);
+	typedef int (*ForthGetChar)(void);
 
 	typedef enum {
 		ColonWord,
@@ -74,7 +75,7 @@ extern "C" {
 
 		ForthPrintf printf;
 		ForthPutChar putchar;
-
+		ForthGetChar getchar;
 	}ForthVm;
 
 	typedef Bool(*ForthCFunc)(ForthVm* vm);
@@ -88,7 +89,8 @@ extern "C" {
 		Cell* returnStack,
 		UCell returnStackSize,
 		ForthPrintf printf,
-		ForthPutChar putc);
+		ForthPutChar putc,
+		ForthGetChar getc);
 
 	Bool Forth_DoString(ForthVm* vm, const char* inputString);
 	void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate);

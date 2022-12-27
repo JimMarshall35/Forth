@@ -2,6 +2,7 @@
 #include "../Forth2/Forth2.h"
 #include <string>
 #include <cstdarg>
+#include <conio.h>
 
 namespace {
 #define NumDictItems 256
@@ -10,7 +11,7 @@ namespace {
 #define ReturnStackSize 64
 #define ScratchPadSize 256
 
-#define TestSetup(print, put) \
+#define TestSetup(print, put, getc) \
 Cell mainMem[MainMemorySize];\
 Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
@@ -18,7 +19,7 @@ ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
     intStack, IntStackSize,\
     returnStack, ReturnStackSize,\
-    print, put);\
+    print, put, getc);\
 
 class IntegerStackTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<Cell>>> {
 protected:
@@ -33,7 +34,7 @@ protected:
 
 TEST_P(IntegerStackTests, CorrectValueOnStackAfterEnd) {
     // arrange
-    TestSetup(&printf, &putchar);
+    TestSetup(&printf, &putchar, &_getch);
     std::string stringToDo = std::get<0>(GetParam());
     auto expectedStack = std::get<1>(GetParam());
 
@@ -81,11 +82,16 @@ INSTANTIATE_TEST_CASE_P(
         Case(": test 1 2 + ; : test2 test 3 + ; : test3 test2 420 + 2 - ; test3", Stack{ 424 }),
 
 
-        // branch0
-        Case(": test branch0 4 420 ; 1 test", Stack{ 420 }),
-        Case(": test branch0 4 420 ; 0 test", Stack{  }),
-        Case(": test branch0 7 1 2 + ; 1 test", Stack{ 3 }),
-        Case(": test branch0 7 1 2 + ; 0 test", Stack{  }),
+        // branch0 - I've decided to make branch0 not be able to be used like this
+        // - I've made branches take up less code by not needing to have a literal token before the branch
+        // value - as a result you can't use them like this and I don't want to add logic to not compile literal 
+        // tokens if the previous token was a branch, ect, I'd rather keep it simple and only use branch and branch0
+        // by having higher level immediate words compile them into ifs, do's, ect, no need to expose them for use like this.
+        // todo - add some kind of error checking in perhaps
+        //Case(": test branch0 4 420 ; 1 test", Stack{ 420 }),
+        //Case(": test branch0 4 420 ; 0 test", Stack{  }),
+        //Case(": test branch0 7 1 2 + ; 1 test", Stack{ 3 }),
+        //Case(": test branch0 7 1 2 + ; 0 test", Stack{  }),
 
         // comments
         Case(": test ( comment 1 ) 1 23 ( another comment ) + ; test", Stack{ 24 }),
@@ -148,7 +154,7 @@ TEST_P(PutCharTests, CorrectValuesPassedToPutChar) {
     // and do fail if given incorrect expected outputs
 
     // arrange
-    TestSetup(&MockPrintf, &MockPutChar);
+    TestSetup(&MockPrintf, &MockPutChar, &_getch);
     ClearCharOutput();
 
     std::string stringToDo = std::get<0>(GetParam());
@@ -234,7 +240,7 @@ protected:
 
 TEST_P(ReturnStackTests, CorrectValueOnStackAfterEnd) {
     // arrange
-    TestSetup(&printf, &putchar);
+    TestSetup(&printf, &putchar, &_getch);
     std::string stringToDo = std::get<0>(GetParam());
     auto expectedReturnStack = std::get<1>(GetParam());
     auto expectedIntStack = std::get<2>(GetParam());

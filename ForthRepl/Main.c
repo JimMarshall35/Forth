@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <conio.h>
 #include "../Forth2/Forth2.h"
 #define NumDictItems 256
 #define MainMemorySize (1024 * 32)
@@ -47,12 +48,12 @@ int main()
     Cell mainMem[MainMemorySize];
     Cell intStack[IntStackSize];
     Cell returnStack[ReturnStackSize];
-    
+    //int i = getch();
     ForthVm vm = Forth_Initialise(
         mainMem, MainMemorySize,
         intStack, IntStackSize,
         returnStack, ReturnStackSize,
-        &printf, &putchar);
+        &printf, &putchar, &_getch);
     Forth_DoString(&vm, fizzbuzzTest);
     Repl(&vm);
 }
