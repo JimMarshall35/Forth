@@ -18,9 +18,8 @@ extern "C" {
 	typedef int (*ForthGetChar)(void);
 	
 	typedef enum {
-		Forth_CompileBit = 1, 
-		Forth_InColonDefinitionBit = 2,
-		Forth_CommentFlag = 4
+		Forth_CompileBit = 1,
+		Forth_CommentFlag = 2
 	}ForthMode;
 
 	typedef struct {

@@ -180,6 +180,7 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
 	vm->printf(stackName);
 	Cell* readPtr = stack;
+	vm->printf("[ ");
 	while (readPtr != stackTop) {
 		if (readPtr + 1 == stackTop) {
 			vm->printf("%i", *(readPtr++));
@@ -192,16 +193,16 @@ static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const cha
 }
 
 static void PrintIntStack(const ForthVm* vm) {
-	PrintStack(vm, vm->intStack, vm->intStackTop, "int stack:    [ ");
+	PrintStack(vm, vm->intStack, vm->intStackTop, "int stack:    ");
 }
 
 static void PrintReturnStack(const ForthVm* vm) {
-	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: [ ");
+	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: ");
 }
 
 static Bool InnerInterpreter(ForthVm* vm){
 	Cell* initialReturnStack = vm->returnStackTop;
-	ExecutionToken token, item, item2;
+	ExecutionToken token, item;
 	Cell cell1, cell2, cell3, cell4; // top four of the stack commonly used, can't declare locals in case
 	const char* nextTokenReadPtr = NULL;
 	char* dictionaryNameWritePtr = NULL;
@@ -287,15 +288,10 @@ static Bool InnerInterpreter(ForthVm* vm){
 			cell1 = PopIntStack(vm);
 			((char*)vm->memoryTop) += cell1;
 		BCase Colon:
-			if (vm->currentMode & Forth_InColonDefinitionBit) {
+			if (vm->currentMode & Forth_CompileBit) {
 				vm->printf("you're already in colon compile mode");
 				return True;
 			}
-			if (vm->currentMode & Forth_CompileBit) {
-				vm->printf("something's gone badly wrong - you're not in a colon definition but are in compile mode somehow");
-				return True;
-			}
-			vm->currentMode |= Forth_InColonDefinitionBit;
 			vm->currentMode |= Forth_CompileBit;
 			item = (DictionaryItem*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
@@ -309,14 +305,13 @@ static Bool InnerInterpreter(ForthVm* vm){
 			vm->dictionarySearchStart = item;
 			LoadNextToken(vm);
 		BCase SemiColon:
-			if ((vm->currentMode & Forth_InColonDefinitionBit) == 0) {
+			if ((vm->currentMode & Forth_CompileBit) == 0) {
 				vm->printf("you're not in colon compile mode");
 			}
 			// compile a return token
 			StringCopy(vm->tokenBuffer, "return");
 			*(vm->memoryTop++) = SearchForToken(vm);
 			// take us out of colon definition mode and its child mode, compile mode
-			vm->currentMode &= ~(Forth_InColonDefinitionBit);
 			vm->currentMode &= ~(Forth_CompileBit);
 		BCase Show:
 			PrintIntStack(vm);
@@ -324,7 +319,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 		BCase ShowWords:
 			PrintDictionaryContents(vm);
 		BCase Immediate:
-			if (vm->currentMode & Forth_InColonDefinitionBit) {
+			if (vm->currentMode & Forth_CompileBit) {
 				vm->printf("you can't use the word \"immediate\" when compiling a colon word");
 			}
 			LastWordAdded(vm)->isImmediate = True;
@@ -407,7 +402,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 				//return True;
 			}
 		BCase StringLiteral:
-			cell1 = *(vm->instructionPointer++); // size of string in bytes
+			cell1 = *vm->instructionPointer++; // size of string in bytes
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, vm->instructionPointer); // ptr to string
 			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell); // number to advance ip by
@@ -458,6 +453,7 @@ static Bool LoadNextToken(ForthVm* vm) {
 }
 
 static void OuterInterpreter(ForthVm* vm, const char* input) {
+	// the Birkenhead to the InnerInterpreter's Liverpool
 	vm->nextTokenStart = input;
 	StringCopy(vm->tokenBuffer, "lit");
 	ExecutionToken lit = SearchForToken(vm);
@@ -467,9 +463,9 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 	while (*vm->tokenBuffer != "\0") {
 		ExecutionToken foundToken = SearchForToken(vm);
 		if (foundToken != NULL) {
-			if (vm->currentMode & Forth_InColonDefinitionBit) {
+			if (vm->currentMode & Forth_CompileBit) {
 				if ((vm->currentMode & Forth_CommentFlag) == 0) {
-					if ((foundToken->isImmediate || ((vm->currentMode & Forth_CompileBit) == 0))) {
+					if (foundToken->isImmediate) {
 						vm->instructionPointer = &foundToken;
 						InnerInterpreter(vm, foundToken);
 					}
@@ -525,7 +521,6 @@ static const char* coreWords =
 
 // immediate words - these compile themselves down into control flow structures made up of branch and branch0 only
 // and these automate the setting of branch offsets by running at compile time as denoted by "immediate"
-
 ": if "
 	"' branch0 , ( compile a branch0 token ) "
 	"here ( 'here' now points to where the compiled ifs branch offset will go, push it to be back-patched by then or else ) "
@@ -629,7 +624,6 @@ exit:
 ;
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
-	// TODO: write tests
 	DictionaryItem item;
 	StringCopy(item.name, name);
 	item.isImmediate = isImmediate;
