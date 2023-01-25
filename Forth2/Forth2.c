@@ -56,6 +56,9 @@ typedef enum {
 	EnterWord,
 	CallC,
 	Key,
+	Body,
+	SwitchToCompile,
+	SwitchToInterpret,
 
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
@@ -72,7 +75,7 @@ static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char d
 #define PushReturnStack(vm, val) *(vm->returnStackTop++) = val
 
 
-static DictionaryItem* LastWordAdded(ForthVm* vm) {
+static ForthDictHeader* LastWordAdded(ForthVm* vm) {
 	return (vm->dictionarySearchStart == NULL) ? vm->memory : vm->dictionarySearchStart;
 }
 
@@ -107,8 +110,8 @@ static void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cel
 
 static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 	vm->printf("\tbytecode: ");
-	while (((DictionaryItem*)*readPtr)->data[0] != Return) {
-		DictionaryItem* token = (DictionaryItem*)(*readPtr++);
+	while (((ForthDictHeader*)*readPtr)->data[0] != Return) {
+		ForthDictHeader* token = (ForthDictHeader*)(*readPtr++);
 		vm->printf("%s ", token->name);
 		int length;
 		int adjustedLength;
@@ -127,7 +130,7 @@ static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 }
 
 static void PrintDictionaryContents(const ForthVm* vm) {
-	const DictionaryItem* item = vm->dictionarySearchStart;
+	const ForthDictHeader* item = vm->dictionarySearchStart;
 	int i = 0;
 	while (item->previous != NULL) {
 		vm->printf("%i.) %s \n",i++ ,item->name);
@@ -140,7 +143,7 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 			vm->printf("\tprimitive\n");
 		}
 		vm->printf("\n");
-		item = ((const DictionaryItem*)item->previous);
+		item = ((const ForthDictHeader*)item->previous);
 	}
 	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
 	size_t capacity = vm->maxMemorySize * sizeof(Cell);
@@ -149,7 +152,7 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 }
 
 static ExecutionToken SearchForToken(ForthVm* vm) {
-	DictionaryItem* item = vm->dictionarySearchStart;
+	ForthDictHeader* item = vm->dictionarySearchStart;
 	while (item != NULL) {
 		if (StringCompare(item->name, vm->tokenBuffer)) {
 			return item;
@@ -160,10 +163,10 @@ static ExecutionToken SearchForToken(ForthVm* vm) {
 }
 
 static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const char* forthName, Bool isImmediate) {
-	DictionaryItem item;
+	ForthDictHeader item;
 	StringCopy(item.name, forthName);
 	item.isImmediate = isImmediate;
-	DictionaryItem* newItem = (DictionaryItem*)vm->memoryTop;
+	ForthDictHeader* newItem = (ForthDictHeader*)vm->memoryTop;
 	*newItem = item;
 
 	// link in new word
@@ -171,7 +174,7 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 	vm->dictionarySearchStart = newItem;
 
 	// point data to the body and compile a single primitive
-	vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell); // need to align to make portable
+	vm->memoryTop += sizeof(ForthDictHeader) / sizeof(Cell); // need to align to make portable
 	newItem->data = vm->memoryTop;
 	newItem->data[0] = primitive;
 	vm->memoryTop++;
@@ -208,7 +211,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 	char* dictionaryNameWritePtr = NULL;
 	do {
 		token = *vm->instructionPointer++;
- 		switch ((PrimitiveWordTokenValues)token->data[0]) {
+		switch ((PrimitiveWordTokenValues)token->data[0]) {
 		BCase Return:
 			vm->instructionPointer = PopReturnStack(vm);
 		BCase Add:
@@ -293,10 +296,10 @@ static Bool InnerInterpreter(ForthVm* vm){
 				return True;
 			}
 			vm->currentMode |= Forth_CompileBit;
-			item = (DictionaryItem*)vm->memoryTop;
+			item = (ForthDictHeader*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
 			item->isImmediate = False;
-			vm->memoryTop += (sizeof(DictionaryItem) / sizeof(Cell));
+			vm->memoryTop += (sizeof(ForthDictHeader) / sizeof(Cell));
 			item->data = vm->memoryTop;
 			item->data[0] = EnterWord;
 			item->data[1] = &item->data[2];
@@ -311,7 +314,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			// compile a return token
 			StringCopy(vm->tokenBuffer, "return");
 			*(vm->memoryTop++) = SearchForToken(vm);
-			// take us out of colon definition mode and its child mode, compile mode
+			// take us out of compile mode
 			vm->currentMode &= ~(Forth_CompileBit);
 		BCase Show:
 			PrintIntStack(vm);
@@ -324,9 +327,9 @@ static Bool InnerInterpreter(ForthVm* vm){
 			}
 			LastWordAdded(vm)->isImmediate = True;
 		BCase Create:
-			item = (DictionaryItem*)vm->memoryTop;
+			item = (ForthDictHeader*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
-			vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell);
+			vm->memoryTop += sizeof(ForthDictHeader) / sizeof(Cell);
 			item->data = vm->memoryTop;
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
@@ -420,6 +423,13 @@ static Bool InnerInterpreter(ForthVm* vm){
 			((ForthCFunc)token->data[1])(vm);
 		BCase Key:
 			PushIntStack(vm, vm->getchar());
+		BCase Body:
+			cell1 = PopIntStack(vm);
+			PushIntStack(vm, ((ForthDictHeader*)cell1)->data);
+		BCase SwitchToCompile:
+			vm->currentMode |= Forth_CompileBit;
+		BCase SwitchToInterpret:
+			vm->currentMode &= ~Forth_CompileBit;
 		}
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
@@ -453,7 +463,6 @@ static Bool LoadNextToken(ForthVm* vm) {
 }
 
 static void OuterInterpreter(ForthVm* vm, const char* input) {
-	// the Birkenhead to the InnerInterpreter's Liverpool
 	vm->nextTokenStart = input;
 	StringCopy(vm->tokenBuffer, "lit");
 	ExecutionToken lit = SearchForToken(vm);
@@ -462,24 +471,22 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 	}
 	while (*vm->tokenBuffer != "\0") {
 		ExecutionToken foundToken = SearchForToken(vm);
+		vm->instructionPointer = &foundToken;
 		if (foundToken != NULL) {
 			if (vm->currentMode & Forth_CompileBit) {
 				if ((vm->currentMode & Forth_CommentFlag) == 0) {
 					if (foundToken->isImmediate) {
-						vm->instructionPointer = &foundToken;
-						InnerInterpreter(vm, foundToken);
+						InnerInterpreter(vm);
 					}
 					else {
 						*(vm->memoryTop++) = foundToken;
 					}
 				}
 				else if (foundToken->data[0] == CommentStop) {
-					vm->instructionPointer = &foundToken;
 					InnerInterpreter(vm);
 				}
 			}
 			else {
-				vm->instructionPointer = &foundToken;
 				InnerInterpreter(vm);
 			}
 		}
@@ -491,7 +498,6 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 				*(vm->memoryTop++) = converted;
 			}
 			else {
-				// try convert token string to number and push it (real good)
 				PushIntStack(vm, converted);
 			}
 		}
@@ -502,6 +508,8 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 }
 
 static const char* coreWords =
+//"create : r' enter here ! 1 cell * allot here 1 cell * + here ! 1 cell * allot ( boiler plate created to call function ) r' ] here ! 1 cell * allot r' create here ! 1 cell * allot r' enter here ! 1 cell * allot here 1 cell * + here ! "
+//"showWords "
 // helpers
 ": allotCell cell * allot ; "
 
@@ -621,13 +629,14 @@ exit:
 	"loop drop "
 "; "
 
+
 ;
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
-	DictionaryItem item;
+	ForthDictHeader item;
 	StringCopy(item.name, name);
 	item.isImmediate = isImmediate;
-	DictionaryItem* newItem = (DictionaryItem*)vm->memoryTop;
+	ForthDictHeader* newItem = (ForthDictHeader*)vm->memoryTop;
 	*newItem = item;
 
 	// link in new word
@@ -635,7 +644,7 @@ void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Boo
 	vm->dictionarySearchStart = newItem;
 
 	// point data to the body and compile a CallC primitive and C function ptr address
-	vm->memoryTop += sizeof(DictionaryItem) / sizeof(Cell); // need to align to make portable
+	vm->memoryTop += sizeof(ForthDictHeader) / sizeof(Cell); // need to align to make portable
 	newItem->data = vm->memoryTop;
 	newItem->data[0] = CallC;
 	newItem->data[1] = function;
@@ -726,6 +735,9 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, EnterWord,                                 "enter",     False);
 	AddPrimitiveToDict(&vm, CallC,                                     "call",      False); // it's not really necessary to add these last two as primitives here but I have done anyway
 	AddPrimitiveToDict(&vm, Key,                                       "key",       False);
+	AddPrimitiveToDict(&vm, Body,                                      ">body",     False);
+	AddPrimitiveToDict(&vm, SwitchToCompile,                           "]",         False);
+	AddPrimitiveToDict(&vm, SwitchToInterpret,                         "[",         True);
 
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);

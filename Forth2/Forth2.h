@@ -27,9 +27,9 @@ extern "C" {
 		Cell* data;
 		Bool isImmediate;
 		void* previous;
-	}DictionaryItem;
+	}ForthDictHeader;
 
-	typedef DictionaryItem* ExecutionToken;
+	typedef ForthDictHeader* ExecutionToken;
 
 
 	typedef struct {
@@ -39,7 +39,7 @@ extern "C" {
 		// for interpreting compiled byte code (innerinterpreter)
 		Cell* instructionPointer;
 
-		DictionaryItem* dictionarySearchStart;
+		ForthDictHeader* dictionarySearchStart;
 
 		// memory for compiled words and variables
 		Cell* memory;
