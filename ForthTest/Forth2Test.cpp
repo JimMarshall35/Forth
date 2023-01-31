@@ -192,7 +192,8 @@ const char* fizzbuzzTest =
         "then "
         "then "
         "then "
-        "then "
+        "then " // TODO : change implementation of if (or define new words e.g. If, Else, and Then) which count and then compile the correct number of thens required so you can just write Then once.
+                // Even adding a new set of words might require change in implementation to standard "then" due to need to verify if the constrol structure being compiled is an If/Else or an if/else (in my example) - might be good to add.
     "loop "
 "; 16 fizzbuzz";
 
