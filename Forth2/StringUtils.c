@@ -97,7 +97,7 @@ Cell ForthAtoi(const char* string)
 	for (Cell i=0; i < length; i++) {
 		char c = string[i];
 		Cell value = c - '0';
-		Cell ValueMultiplier = myPow(10, (length - i - 1));
+		Cell ValueMultiplier = myPow(10, (length - (i + 1)));
 		rVal += value * ValueMultiplier;
 	}
 
