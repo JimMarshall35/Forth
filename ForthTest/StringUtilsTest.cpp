@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "../Forth2/StringUtils.h"
+#include "../Forth2/ForthStringHelpers.h"
 
 class AtoiTests :public ::testing::TestWithParam<std::tuple<std::string, Cell>> {
 };
