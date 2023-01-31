@@ -71,16 +71,15 @@ void CopyStringUntilSpaceCappingWithNull(char* dest, const char* src) {
 	*dest = '\0';
 }
 
-int myPow(int x, int n)
+static Cell myPow(Cell x, Cell n)
 {
-	int i;
-	int number = 1;
+	Cell number = 1;
 
-	for (i = 0; i < n; ++i) {
+	for (Cell i = 0; i < n; ++i) {
 		number *= x;
 	}
 
-	return(number);
+	return number;
 }
 
 Cell ForthAtoi(const char* string)
