@@ -4,10 +4,13 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 typedef enum {
 	False,
 	True
 }Bool;
+typedef int32_t Cell;
+typedef uint32_t UCell;
 
 // my solution to unintentional break case fallthrough in C / C++ -
 // it might offend the sensibilities of some of you macro-hating "squares" - but for me it's worth it to know

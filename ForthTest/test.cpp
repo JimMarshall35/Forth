@@ -46,7 +46,6 @@ TEST_P(IntegerStackTests, CorrectValueOnStackAfterEnd) {
 }
 
 using Stack = std::vector<Cell>;
-#define Case std::make_tuple
 
 INSTANTIATE_TEST_CASE_P(
     CorrectValueOnStackAfterEndTestCases,

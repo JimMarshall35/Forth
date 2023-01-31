@@ -491,7 +491,7 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 			}
 		}
 		else if((vm->currentMode & Forth_CommentFlag) == 0){
-			Cell converted = atoi(vm->tokenBuffer);
+			Cell converted = ForthAtoi(vm->tokenBuffer);
 			if (vm->currentMode & Forth_CompileBit) {
 				// compile number literal
 				*(vm->memoryTop++) = lit;

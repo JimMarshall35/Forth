@@ -1,6 +1,6 @@
 #include "StringUtils.h"
 
-int StringLength(const char* string)
+Cell StringLength(const char* string)
 {
 	int len = 0;
 	while (*(string++) != '\0') {
@@ -69,4 +69,38 @@ void CopyStringUntilSpaceCappingWithNull(char* dest, const char* src) {
 		*(dest++) = *(src++);
 	} while (*src != ' ');
 	*dest = '\0';
+}
+
+int myPow(int x, int n)
+{
+	int i;
+	int number = 1;
+
+	for (i = 0; i < n; ++i) {
+		number *= x;
+	}
+
+	return(number);
+}
+
+Cell ForthAtoi(const char* string)
+{
+	Cell length = StringLength(string);
+	Cell rVal = 0;
+	Cell signMultiplier = 1;
+	if (string[0] == '-') {
+		++string;
+		--length;
+		signMultiplier = -1;
+	}
+
+	
+	for (Cell i=0; i < length; i++) {
+		char c = string[i];
+		Cell value = c - '0';
+		Cell ValueMultiplier = myPow(10, (length - i - 1));
+		rVal += value * ValueMultiplier;
+	}
+
+	return rVal * signMultiplier;
 }

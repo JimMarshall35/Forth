@@ -6,12 +6,9 @@ extern "C" {
 #endif
 
 
-#include <stdint.h>
 #include "CommonTypedefs.h"
 #define DictionaryItemNameMaxLength 64
 #define DictionarySize 512
-	typedef int32_t Cell;
-	typedef uint32_t UCell;
 
 	typedef int (*ForthPrintf)(const char* format, ...);
 	typedef int (*ForthPutChar)(int val);
