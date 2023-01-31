@@ -1,5 +1,5 @@
 #include "Forth2.h"
-#include "StringUtils.h"
+#include "ForthStringHelpers.h"
 
 /************************************\
  *   Forth - Jim Marshall - 2022    *
@@ -109,7 +109,7 @@ static void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cel
 }
 
 static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
-	vm->printf("\tbytecode: ");
+	ForthPrint(vm, "\tbytecode: ");
 	while (((ForthDictHeader*)*readPtr)->data[0] != Return) {
 		ForthDictHeader* token = (ForthDictHeader*)(*readPtr++);
 		vm->printf("%s ", token->name);
@@ -126,7 +126,7 @@ static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, " ");
 		}
 	}
-	vm->printf("return\n");
+	ForthPrint(vm, "return\n");
 }
 
 static void PrintDictionaryContents(const ForthVm* vm) {
@@ -140,9 +140,9 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 			PrintCompiledWordContents(vm, readPtr);
 		}
 		else {
-			vm->printf("\tprimitive\n");
+			ForthPrint(vm,"\tprimitive\n");
 		}
-		vm->printf("\n");
+		ForthPrint(vm,"\n");
 		item = ((const ForthDictHeader*)item->previous);
 	}
 	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
@@ -181,9 +181,9 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 }
 
 static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
-	vm->printf(stackName);
+	ForthPrint(vm, stackName);
 	Cell* readPtr = stack;
-	vm->printf("[ ");
+	ForthPrint(vm, "[ ");
 	while (readPtr != stackTop) {
 		if (readPtr + 1 == stackTop) {
 			vm->printf("%i", *(readPtr++));
@@ -192,7 +192,7 @@ static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const cha
 			vm->printf("%i, ", *(readPtr++));
 		}
 	}
-	vm->printf(" ]\n");
+	ForthPrint(vm, " ]\n");
 }
 
 static void PrintIntStack(const ForthVm* vm) {
@@ -292,7 +292,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			((char*)vm->memoryTop) += cell1;
 		BCase Colon:
 			if (vm->currentMode & Forth_CompileBit) {
-				vm->printf("you're already in colon compile mode");
+				ForthPrint(vm, "you're already in colon compile mode");
 				return True;
 			}
 			vm->currentMode |= Forth_CompileBit;
@@ -309,7 +309,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			LoadNextToken(vm);
 		BCase SemiColon:
 			if ((vm->currentMode & Forth_CompileBit) == 0) {
-				vm->printf("you're not in colon compile mode");
+				ForthPrint(vm, "you're not in colon compile mode");
 			}
 			// compile a return token
 			StringCopy(vm->tokenBuffer, "return");
@@ -323,7 +323,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			PrintDictionaryContents(vm);
 		BCase Immediate:
 			if (vm->currentMode & Forth_CompileBit) {
-				vm->printf("you can't use the word \"immediate\" when compiling a colon word");
+				ForthPrint(vm, "you can't use the word \"immediate\" when compiling a colon word");
 			}
 			LastWordAdded(vm)->isImmediate = True;
 		BCase Create:

@@ -6,59 +6,7 @@ extern "C" {
 #endif
 
 
-#include "CommonTypedefs.h"
-#define DictionaryItemNameMaxLength 64
-#define DictionarySize 512
-
-	typedef int (*ForthPrintf)(const char* format, ...);
-	typedef int (*ForthPutChar)(int val);
-	typedef int (*ForthGetChar)(void);
-	
-	typedef enum {
-		Forth_CompileBit = 1,
-		Forth_CommentFlag = 2
-	}ForthMode;
-
-	typedef struct {
-		char name[DictionaryItemNameMaxLength];
-		Cell* data;
-		Bool isImmediate;
-		void* previous;
-	}ForthDictHeader;
-
-	typedef ForthDictHeader* ExecutionToken;
-
-
-	typedef struct {
-		// vm state flags
-		ForthMode currentMode;
-
-		// for interpreting compiled byte code (innerinterpreter)
-		Cell* instructionPointer;
-
-		ForthDictHeader* dictionarySearchStart;
-
-		// memory for compiled words and variables
-		Cell* memory;
-		Cell* memoryTop;
-		UCell maxMemorySize; // in cells
-
-		Cell* intStack;
-		Cell* intStackTop;
-		UCell maxIntStackSize;
-
-		Cell* returnStack;
-		Cell* returnStackTop;
-		UCell maxReturnStackSize;
-
-		// for outer interpreter
-		char tokenBuffer[DictionaryItemNameMaxLength + 1]; // holds current token as a c string during text interpretation
-		const char* nextTokenStart;                        // points to the next token during text interpretation
-
-		ForthPrintf printf;
-		ForthPutChar putchar;
-		ForthGetChar getchar;
-	}ForthVm;
+#include "ForthCommonTypedefs.h"
 
 	typedef Bool(*ForthCFunc)(ForthVm* vm);
 

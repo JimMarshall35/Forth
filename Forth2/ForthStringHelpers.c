@@ -1,4 +1,4 @@
-#include "StringUtils.h"
+#include "ForthStringHelpers.h"
 
 Cell StringLength(const char* string)
 {
@@ -93,13 +93,29 @@ Cell ForthAtoi(const char* string)
 		signMultiplier = -1;
 	}
 
-	
 	for (Cell i=0; i < length; i++) {
-		char c = string[i];
-		Cell value = c - '0';
+		Cell value = string[i] - '0';
 		Cell ValueMultiplier = myPow(10, (length - (i + 1)));
 		rVal += value * ValueMultiplier;
 	}
 
 	return rVal * signMultiplier;
 }
+
+void ForthPrint(const ForthVm* vm, const char* string)
+{
+	char thisChar;
+	if (*string == '\0') {
+		return;
+	}
+	do{
+		thisChar = *string++;
+		vm->putchar(thisChar);
+	} while (thisChar != '\0');
+}
+
+void ForthPrintInt(const ForthVm* vm, Cell cell)
+{
+
+}
+

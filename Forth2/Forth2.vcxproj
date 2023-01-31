@@ -140,12 +140,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Forth2.c" />
-    <ClCompile Include="StringUtils.c" />
+    <ClCompile Include="ForthStringHelpers.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CommonTypedefs.h" />
+    <ClInclude Include="ForthCommonTypedefs.h" />
     <ClInclude Include="Forth2.h" />
-    <ClInclude Include="StringUtils.h" />
+    <ClInclude Include="ForthStringHelpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

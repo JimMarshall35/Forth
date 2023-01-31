@@ -18,7 +18,7 @@
     <ClCompile Include="Forth2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StringUtils.c">
+    <ClCompile Include="ForthStringHelpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,10 +26,10 @@
     <ClInclude Include="Forth2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StringUtils.h">
+    <ClInclude Include="ForthStringHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommonTypedefs.h">
+    <ClInclude Include="ForthCommonTypedefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
