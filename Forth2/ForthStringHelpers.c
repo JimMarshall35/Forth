@@ -63,7 +63,6 @@ int CopyNextToken(const char* inputString, char* tokenOutput)
 	return length;
 }
 
-
 void CopyStringUntilSpaceCappingWithNull(char* dest, const char* src) {
 	do {
 		*(dest++) = *(src++);
@@ -71,32 +70,21 @@ void CopyStringUntilSpaceCappingWithNull(char* dest, const char* src) {
 	*dest = '\0';
 }
 
-static Cell myPow(Cell x, Cell n)
-{
-	Cell number = 1;
-
-	for (Cell i = 0; i < n; ++i) {
-		number *= x;
-	}
-
-	return number;
-}
-
 Cell ForthAtoi(const char* string)
 {
 	Cell length = StringLength(string);
 	Cell rVal = 0;
 	Cell signMultiplier = 1;
+	Cell endPoint = 0;
+	Cell unitsTensHundredsEct = 1;
 	if (string[0] == '-') {
-		++string;
-		--length;
 		signMultiplier = -1;
+		endPoint = 1;
 	}
-
-	for (Cell i=0; i < length; i++) {
+	for (Cell i= length-1; i >= endPoint; --i) {
 		Cell value = string[i] - '0';
-		Cell ValueMultiplier = myPow(10, (length - (i + 1)));
-		rVal += value * ValueMultiplier;
+		rVal += value * unitsTensHundredsEct;
+		unitsTensHundredsEct *= 10;
 	}
 
 	return rVal * signMultiplier;
