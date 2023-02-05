@@ -72,15 +72,16 @@ void CopyStringUntilSpaceCappingWithNull(char* dest, const char* src) {
 
 Cell ForthAtoi(const char* string)
 {
-	Cell length = StringLength(string);
-	Cell rVal = 0;
 	Cell signMultiplier = 1;
 	Cell endPoint = 0;
-	Cell unitsTensHundredsEct = 1;
 	if (string[0] == '-') {
 		signMultiplier = -1;
 		endPoint = 1;
 	}
+
+	Cell length = StringLength(string);
+	Cell rVal = 0;
+	Cell unitsTensHundredsEct = 1;
 	for (Cell i= length-1; i >= endPoint; --i) {
 		Cell value = string[i] - '0';
 		rVal += value * unitsTensHundredsEct;
