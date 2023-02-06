@@ -112,14 +112,16 @@ static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
 	ForthPrint(vm, "\tbytecode: ");
 	while (((ForthDictHeader*)*readPtr)->data[0] != Return) {
 		ForthDictHeader* token = (ForthDictHeader*)(*readPtr++);
-		vm->printf("%s ", token->name);
+		ForthPrint(vm, token->name);
+		vm->putchar(' ');
 		int length;
 		int adjustedLength;
 		switch (token->data[0]) {
 		BCase NumLiteral:
 		case Branch:
 		case Branch0: // intentional fallthrough
-			vm->printf("%i ", *readPtr++);
+			ForthPrintInt(vm, *readPtr++);
+			vm->putchar(' ');
 		BCase StringLiteral:
 			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, "\" ");
 		BCase SearchForAndPushExecutionToken:
@@ -133,8 +135,13 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 	const ForthDictHeader* item = vm->dictionarySearchStart;
 	int i = 0;
 	while (item->previous != NULL) {
-		vm->printf("%i.) %s \n",i++ ,item->name);
-		vm->printf("\tImmediate: %s\n", item->isImmediate ? "true" : "false");
+		ForthPrintInt(vm, i++);
+		ForthPrint(vm, ".) ");
+		ForthPrint(vm, item->name);
+		ForthPrint(vm, " \n");
+		ForthPrint(vm, "\tImmediate: ");
+		ForthPrint(vm, item->isImmediate ? "true" : "false");
+		ForthPrint(vm, "\n");
 		if (item->data[0] == EnterWord && !StringCompare(item->name, "enter")) {
 			Cell* readPtr = item->data[1];
 			PrintCompiledWordContents(vm, readPtr);
@@ -147,8 +154,12 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 	}
 	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
 	size_t capacity = vm->maxMemorySize * sizeof(Cell);
-	vm->printf("memory usage: %i / %i bytes. %f percent memory used\n", dictionaryBytes, capacity,
-		((float)dictionaryBytes / (float) capacity) * 100.0f);
+
+	ForthPrint(vm, "memory usage (bytes): ");
+	ForthPrintInt(vm, dictionaryBytes);
+	ForthPrint(vm, " / ");
+	ForthPrintInt(vm, capacity);
+	vm->putchar('\n');
 }
 
 static ExecutionToken SearchForToken(ForthVm* vm) {
@@ -186,10 +197,11 @@ static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const cha
 	ForthPrint(vm, "[ ");
 	while (readPtr != stackTop) {
 		if (readPtr + 1 == stackTop) {
-			vm->printf("%i", *(readPtr++));
+			ForthPrintInt(vm, *(readPtr++));
 		}
 		else {
-			vm->printf("%i, ", *(readPtr++));
+			ForthPrintInt(vm, *(readPtr++));
+			ForthPrint(vm, ", ");
 		}
 	}
 	ForthPrint(vm, " ]\n");
@@ -395,7 +407,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			PushIntStack(vm, cell1);
 		BCase FullStop:
 			cell1 = PopIntStack(vm);
-			vm->printf("%i", cell1);
+			ForthPrintInt(vm, cell1);
 		BCase SearchForAndPushExecutionTokenCompileTime:
 			StringCopy(vm->tokenBuffer, "r'");
 			item = SearchForToken(vm);
@@ -658,7 +670,6 @@ ForthVm Forth_Initialise(
 	size_t intStackSize,
 	Cell* returnStack,
 	size_t returnStackSize,
-	ForthPrintf printf,
 	ForthPutChar putc,
 	ForthGetChar getc) {
 
@@ -680,7 +691,6 @@ ForthVm Forth_Initialise(
 	vm.returnStackTop = vm.returnStack;
 	vm.maxReturnStackSize = returnStackSize;
 
-	vm.printf = printf;
 	vm.putchar = putc;
 	vm.getchar = getc;
 

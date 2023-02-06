@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "../Forth2/Forth2.h"
+#include "../Forth2/ForthStringHelpers.h"
 #include <string>
 #include <cstdarg>
 #include <conio.h>
@@ -11,7 +12,7 @@ namespace {
 #define ReturnStackSize 64
 #define ScratchPadSize 256
 
-#define TestSetup(print, put, get) \
+#define TestSetup(put, get) \
 Cell mainMem[MainMemorySize];\
 Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
@@ -19,7 +20,7 @@ ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
     intStack, IntStackSize,\
     returnStack, ReturnStackSize,\
-    print, put, get);\
+    put, get);\
 
 class IntegerStackTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<Cell>>> {
 protected:
@@ -34,7 +35,7 @@ protected:
 
 TEST_P(IntegerStackTests, CorrectValueOnStackAfterEnd) {
     // arrange
-    TestSetup(&printf, &putchar, &_getch);
+    TestSetup(&putchar, &_getch);
     std::string stringToDo = std::get<0>(GetParam());
     auto expectedStack = std::get<1>(GetParam());
 
@@ -125,17 +126,6 @@ protected:
         s_charOutput.push_back((char)charVal);
         return 0;
     }
-    static int MockPrintf(const char* format, ...) {
-        char buffer[1024];
-        va_list args;
-        va_start(args, format);
-        vsprintf_s(buffer, format, args);
-        const char* readPtr = buffer;
-        while (*readPtr != '\0') {
-            s_charOutput.push_back(*readPtr++);
-        }
-        return 1;
-    }
     void CompareStackToExpected(const ForthVm& vm, const std::vector<Cell>& expected) {
         size_t stackSize = vm.intStackTop - vm.intStack;
         ASSERT_EQ(stackSize, expected.size());
@@ -152,7 +142,7 @@ TEST_P(PutCharTests, CorrectValuesPassedToPutChar) {
     // and do fail if given incorrect expected outputs
 
     // arrange
-    TestSetup(&MockPrintf, &MockPutChar, &_getch);
+    TestSetup(&MockPutChar, &_getch);
     ClearCharOutput();
 
     std::string stringToDo = std::get<0>(GetParam());
@@ -239,7 +229,7 @@ protected:
 
 TEST_P(ReturnStackTests, CorrectValueOnStackAfterEnd) {
     // arrange
-    TestSetup(&printf, &putchar, &_getch);
+    TestSetup(&putchar, &_getch);
     std::string stringToDo = std::get<0>(GetParam());
     auto expectedReturnStack = std::get<1>(GetParam());
     auto expectedIntStack = std::get<2>(GetParam());
@@ -308,7 +298,7 @@ std::vector<char> RegisterCFuncTests::s_charOutput;
 
 TEST_P(RegisterCFuncTests, CorrectValsFromPutCharAndStackWhenCFuncCalled) {
     // arrange
-    TestSetup(&MockPrintf, &MockPutChar, &_getch);
+    TestSetup(&MockPutChar, &_getch);
     ClearCharOutput();
 
     std::string stringToDo = std::get<0>(GetParam());
@@ -342,8 +332,8 @@ Bool Test2(ForthVm* vm) {
 Bool Test3(ForthVm* vm) {
     Cell cell1 = *(--vm->intStackTop);
     Cell cell2 = *(--vm->intStackTop);
-    vm->printf("%i", cell1);
-    vm->printf("%i", cell2);
+    ForthPrintInt(vm, cell1);
+    ForthPrintInt(vm, cell2);
     return True;
 }
 

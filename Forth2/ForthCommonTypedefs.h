@@ -14,7 +14,6 @@ typedef enum {
 typedef int32_t Cell;
 typedef uint32_t UCell;
 
-typedef int (*ForthPrintf)(const char* format, ...);
 typedef int (*ForthPutChar)(int val);
 typedef int (*ForthGetChar)(void);
 
@@ -58,15 +57,11 @@ typedef struct {
 	char tokenBuffer[DictionaryItemNameMaxLength + 1]; // holds current token as a c string during text interpretation
 	const char* nextTokenStart;                        // points to the next token during text interpretation
 
-	ForthPrintf printf;
 	ForthPutChar putchar;
 	ForthGetChar getchar;
 }ForthVm;
 
-// my solution to unintentional break case fallthrough in C / C++ -
-// it might offend the sensibilities of some of you macro-hating "squares" - but for me it's worth it to know
-// I'll never forget the break. You don't have to use it but you'd better get used to seeing it because this macro is the future 
-// ;)
+// my solution to unintentional break case fallthrough in C / C++
 #define BCase break; case 
 
 

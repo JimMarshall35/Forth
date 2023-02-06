@@ -100,11 +100,26 @@ void ForthPrint(const ForthVm* vm, const char* string)
 	do{
 		thisChar = *string++;
 		vm->putchar(thisChar);
-	} while (thisChar != '\0');
+	} while (*string != '\0');
 }
 
-void ForthPrintInt(const ForthVm* vm, Cell cell)
+void ForthPrintInt(const ForthVm* vm, Cell val)
 {
-
+	static char buf[32] = { 0 };
+	int base = 10;
+	int i = 30;
+	if (val == 0) {
+		vm->putchar('0');
+		return;
+	}
+	Cell absVal = (val < 0) ? -val : val;
+	for (; absVal && i; --i, absVal /= base) {
+		buf[i] = "0123456789abcdef"[absVal % base];
+	}
+	if (val < 0) {
+		buf[i--] = '-';
+	}
+	char* string = &buf[i + 1];
+	ForthPrint(vm, string);
 }
 

@@ -18,7 +18,6 @@ extern "C" {
 		UCell intStackSize,
 		Cell* returnStack,
 		UCell returnStackSize,
-		ForthPrintf printf, // want to eventually remove this dependency - used to print numbers at the moment
 		ForthPutChar putc,
 		ForthGetChar getc);
 
