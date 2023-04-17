@@ -21,7 +21,9 @@ void Repl(ForthVm* vm) {
     } while (True);
 }
 
-
+/*
+: fizzbuzz 0 do i 0 = if 0 . cr else i 15 % 0 = if s" fizzbuzz" print cr else i 3 % 0 = if s" fizz" print cr else i 5 % 0 = if s" buzz" print cr else i . cr then then then then loop ;
+*/
 const char* fizzbuzzTest = 
 ": fizzbuzz "
     "0 do "
@@ -42,6 +44,10 @@ const char* fizzbuzzTest =
     "loop "
 ";";
 
+void putChar(char c) {
+    printf("%c", c);
+}
+
 int main()
 {
     Cell mainMem[MainMemorySize];
@@ -52,7 +58,7 @@ int main()
         mainMem, MainMemorySize,
         intStack, IntStackSize,
         returnStack, ReturnStackSize,
-        &printf, &putchar, &_getch);
+        &putchar, &_getch);
     Forth_DoString(&vm, fizzbuzzTest);
     Repl(&vm);
 }
