@@ -59,7 +59,7 @@ typedef enum {
 	Body,
 	SwitchToCompile,
 	SwitchToInterpret,
-
+	Does,
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
 
@@ -300,8 +300,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 		BCase Here:
 			PushIntStack(vm, vm->memoryTop);
 		BCase Allot:
-			cell1 = PopIntStack(vm);
-			((char*)vm->memoryTop) += cell1;
+			((char*)vm->memoryTop) += PopIntStack(vm);
 		BCase Colon:
 			if (vm->currentMode & Forth_CompileBit) {
 				ForthPrint(vm, "you're already in colon compile mode");
@@ -341,8 +340,29 @@ static Bool InnerInterpreter(ForthVm* vm){
 		BCase Create:
 			item = (ForthDictHeader*)vm->memoryTop;
 			CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
-			vm->memoryTop += sizeof(ForthDictHeader) / sizeof(Cell);
+			item->isImmediate = False;
+			vm->memoryTop += (sizeof(ForthDictHeader) / sizeof(Cell));
+			
 			item->data = vm->memoryTop;
+			item->data[0] = EnterWord;
+			item->data[1] = &item->data[2];
+			// compile the same as any word so far, now compile body of a create-ed word
+			/*
+			create generated pseudocode:
+
+			push end
+			return
+			end:
+
+			*/
+			StringCopy(vm->tokenBuffer, "lit");
+			token = SearchForToken(vm);
+			item->data[2] = token;
+			item->data[3] = &item->data[5];
+			StringCopy(vm->tokenBuffer, "return");
+			token = SearchForToken(vm);
+			item->data[4] = token;
+			vm->memoryTop += 5;
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
 			LoadNextToken(vm);
@@ -442,6 +462,27 @@ static Bool InnerInterpreter(ForthVm* vm){
 			vm->currentMode |= Forth_CompileBit;
 		BCase SwitchToInterpret:
 			vm->currentMode &= ~Forth_CompileBit;
+		BCase Does:
+			// re-write the return address of the last created word 
+			// with a branch pointing to the next part of this word.
+			// Then return to prevent the code afer does> from being run
+			// when does> itself iss run... get it?
+			// the return token for this word will end up being used 
+			// by the created word (created by create) is called and 
+			// never when the word is called if does is used. (as this token BCase does the return).
+			// https://softwareengineering.stackexchange.com/questions/339283/forth-how-do-create-and-does-work-exactly
+			StringCopy(vm->tokenBuffer, "branch");
+			token = SearchForToken(vm);
+			// the offset of a create-created word's return value is hard coded here.
+			// need to check for proper usage
+			vm->dictionarySearchStart->data[4] = token;
+			// this is assuming (as is the rest of this code) that 
+			// does> is paired up with create in a word.
+			// This here code is assuming that vm->memoryTop is pointing to the word created by create
+			// and memoryTop can be incremented like so below
+			vm->dictionarySearchStart->data[5] = (vm->instructionPointer - &vm->dictionarySearchStart->data[4]) - 1; // why the -1? need to figure out why
+			vm->memoryTop++;
+			vm->instructionPointer = PopReturnStack(vm);
 		}
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
@@ -641,7 +682,9 @@ exit:
 	"loop drop "
 "; "
 
+": variable create 0 , ; "
 
+": value variable does> @ ; "
 ;
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
@@ -745,9 +788,10 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, EnterWord,                                 "enter",     False);
 	AddPrimitiveToDict(&vm, CallC,                                     "call",      False); // it's not really necessary to add these last two as primitives here but I have done anyway
 	AddPrimitiveToDict(&vm, Key,                                       "key",       False);
-	AddPrimitiveToDict(&vm, Body,                                      ">body",     False);
+	AddPrimitiveToDict(&vm, Body,                                      ">body",     False); // todo: check if used
 	AddPrimitiveToDict(&vm, SwitchToCompile,                           "]",         False);
 	AddPrimitiveToDict(&vm, SwitchToInterpret,                         "[",         True);
+	AddPrimitiveToDict(&vm, Does,                                      "does>",     False);
 
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
