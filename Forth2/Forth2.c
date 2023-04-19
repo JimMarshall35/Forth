@@ -173,6 +173,11 @@ static ExecutionToken SearchForToken(ForthVm* vm) {
 	return NULL;
 }
 
+static ExecutionToken SearchForTokenString(ForthVm* vm, const char* tokenName) {
+	StringCopy(vm->tokenBuffer, tokenName);
+	return SearchForToken(vm);
+}
+
 static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, const char* forthName, Bool isImmediate) {
 	ForthDictHeader item;
 	StringCopy(item.name, forthName);
@@ -323,8 +328,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 				ForthPrint(vm, "you're not in colon compile mode");
 			}
 			// compile a return token
-			StringCopy(vm->tokenBuffer, "return");
-			*(vm->memoryTop++) = SearchForToken(vm);
+			*(vm->memoryTop++) = SearchForTokenString(vm, "return");
 			// take us out of compile mode
 			vm->currentMode &= ~(Forth_CompileBit);
 		BCase Show:
@@ -355,13 +359,9 @@ static Bool InnerInterpreter(ForthVm* vm){
 			end:
 
 			*/
-			StringCopy(vm->tokenBuffer, "lit");
-			token = SearchForToken(vm);
-			item->data[2] = token;
+			item->data[2] = SearchForTokenString(vm, "lit");
 			item->data[3] = &item->data[5];
-			StringCopy(vm->tokenBuffer, "return");
-			token = SearchForToken(vm);
-			item->data[4] = token;
+			item->data[4] = SearchForTokenString(vm, "return");
 			vm->memoryTop += 5;
 			item->previous = vm->dictionarySearchStart;
 			vm->dictionarySearchStart = item;
@@ -429,9 +429,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			cell1 = PopIntStack(vm);
 			ForthPrintInt(vm, cell1);
 		BCase SearchForAndPushExecutionTokenCompileTime:
-			StringCopy(vm->tokenBuffer, "r'");
-			item = SearchForToken(vm);
-			*(vm->memoryTop++) = item;
+			*(vm->memoryTop++) = SearchForTokenString(vm, "r'");
 			CompileCStringToForthByteCode(vm, vm->nextTokenStart, ' ');
 			if (!LoadNextToken(vm)) {
 				//return True;
@@ -443,9 +441,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			cell2 = cell1 % sizeof(Cell) ? (cell1 / sizeof(Cell)) + 1 : cell1 / sizeof(Cell); // number to advance ip by
 			vm->instructionPointer += cell2;
 		BCase StringLiteralCompileTime:
-			StringCopy(vm->tokenBuffer, "sr\"");
-			item = SearchForToken(vm);
-			*vm->memoryTop++ = item;
+			*vm->memoryTop++ = SearchForTokenString(vm, "sr\"");
 			cell1 = CompileCStringToForthByteCode(vm, vm->nextTokenStart, '"');
 			vm->nextTokenStart += cell1 + 2;
 		BCase EnterWord:
@@ -471,15 +467,15 @@ static Bool InnerInterpreter(ForthVm* vm){
 			// by the created word (created by create) is called and 
 			// never when the word is called if does is used. (as this token BCase does the return).
 			// https://softwareengineering.stackexchange.com/questions/339283/forth-how-do-create-and-does-work-exactly
-			StringCopy(vm->tokenBuffer, "branch");
-			token = SearchForToken(vm);
+ 
 			// the offset of a create-created word's return value is hard coded here.
 			// need to check for proper usage
-			vm->dictionarySearchStart->data[4] = token;
+			
 			// this is assuming (as is the rest of this code) that 
 			// does> is paired up with create in a word.
 			// This here code is assuming that vm->memoryTop is pointing to the word created by create
 			// and memoryTop can be incremented like so below
+			vm->dictionarySearchStart->data[4] = SearchForTokenString(vm, "branch");
 			vm->dictionarySearchStart->data[5] = (vm->instructionPointer - &vm->dictionarySearchStart->data[4]) - 1; // why the -1? need to figure out why
 			vm->memoryTop++;
 			vm->instructionPointer = PopReturnStack(vm);
@@ -517,8 +513,7 @@ static Bool LoadNextToken(ForthVm* vm) {
 
 static void OuterInterpreter(ForthVm* vm, const char* input) {
 	vm->nextTokenStart = input;
-	StringCopy(vm->tokenBuffer, "lit");
-	ExecutionToken lit = SearchForToken(vm);
+	ExecutionToken lit = SearchForTokenString(vm, "lit");
 	if (!LoadNextToken(vm)) {
 		return;
 	}
