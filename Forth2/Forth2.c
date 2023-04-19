@@ -465,20 +465,32 @@ static Bool InnerInterpreter(ForthVm* vm){
 			// the offset of a create-created word's return value is hard coded here.
 			// need to check for proper usage)
 
+			// previous address pushed onto stack by defining word needs to be expanded 
+			// to accomodate the fact that we're changing from a return token which is just
+			// one cell to a branch token which is two
 			vm->dictionarySearchStart->data[3] += sizeof(Cell);
-			
+
+			// swap the return token for a branch token
+			vm->dictionarySearchStart->data[4] = SearchForTokenString(vm, "branch");
+
 			{
-				ExecutionToken t = vm->dictionarySearchStart->data[4];
-				vm->dictionarySearchStart->data[4] = SearchForTokenString(vm, "branch");
-				int offset = vm->memoryTop - &vm->dictionarySearchStart->data[5];
-				for (int i = 4 + offset; i > 4; i--) {
+				// shift memory along by one cell to accomodate extra cell needed for branch token.
+				// TODO: research and come up with a more elegant solution. if does> is used as intended should be fine
+				Cell offset = vm->memoryTop - &vm->dictionarySearchStart->data[5];
+				for (Cell i = 4 + offset; i > 4; i--) {
 					vm->dictionarySearchStart->data[i + 1] = vm->dictionarySearchStart->data[i];
 				}
 			}
+
+			// set offset for branch token
 			vm->dictionarySearchStart->data[5] = (vm->instructionPointer - &vm->dictionarySearchStart->data[4]) - 1;
 
-			
+			// increase memory top
 			vm->memoryTop++;
+
+			// we don't actually want to run the code after does> when the word with does> in it is executed,
+			// we want to link subsequent defined words to it by replacing their return (the whole point of this section of code). 
+			// And so we just return now.
 			vm->instructionPointer = PopReturnStack(vm);
 		}
 	} while (vm->returnStackTop != initialReturnStack);
