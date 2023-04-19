@@ -477,7 +477,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 				// shift memory along by one cell to accomodate extra cell needed for branch token.
 				// TODO: research and come up with a more elegant solution. if does> is used as intended should be fine
 				Cell offset = vm->memoryTop - &vm->dictionarySearchStart->data[5];
-				for (Cell i = 4 + offset; i > 4; i--) {
+				for (Cell i = 5 + offset; i > 4; i--) {
 					vm->dictionarySearchStart->data[i + 1] = vm->dictionarySearchStart->data[i];
 				}
 			}
