@@ -93,14 +93,10 @@ Cell ForthAtoi(const char* string)
 
 void ForthPrint(const ForthVm* vm, const char* string)
 {
-	char thisChar;
-	if (*string == '\0') {
-		return;
+	char* thisChar = string;
+	while (*thisChar != '\0') {
+		vm->putchar(*thisChar++);
 	}
-	do{
-		thisChar = *string++;
-		vm->putchar(thisChar);
-	} while (*string != '\0');
 }
 
 void ForthPrintInt(const ForthVm* vm, Cell val)

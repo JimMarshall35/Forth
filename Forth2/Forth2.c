@@ -463,7 +463,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 		BCase SwitchToInterpret:
 			vm->currentMode &= ~Forth_CompileBit;
 		BCase Does:
-			// re-write the return address of the last created word 
+			// re-write the return token of the last created word 
 			// with a branch pointing to the next part of this word.
 			// Then return to prevent the code afer does> from being run
 			// when does> itself iss run... get it?
