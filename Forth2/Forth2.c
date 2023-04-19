@@ -460,23 +460,24 @@ static Bool InnerInterpreter(ForthVm* vm){
 			vm->currentMode &= ~Forth_CompileBit;
 		BCase Does:
 			// re-write the return token of the last created word 
-			// with a branch pointing to the next part of this word.
-			// Then return to prevent the code afer does> from being run
-			// when does> itself iss run... get it?
-			// the return token for this word will end up being used 
-			// by the created word (created by create) is called and 
-			// never when the word is called if does is used. (as this token BCase does the return).
-			// https://softwareengineering.stackexchange.com/questions/339283/forth-how-do-create-and-does-work-exactly
- 
+			// with a branch pointing to the next part of THIS word.
+			// (the last created word SHOULD have been created by does> to work properly as
 			// the offset of a create-created word's return value is hard coded here.
-			// need to check for proper usage
+			// need to check for proper usage)
+
+			vm->dictionarySearchStart->data[3] += sizeof(Cell);
 			
-			// this is assuming (as is the rest of this code) that 
-			// does> is paired up with create in a word.
-			// This here code is assuming that vm->memoryTop is pointing to the word created by create
-			// and memoryTop can be incremented like so below
-			vm->dictionarySearchStart->data[4] = SearchForTokenString(vm, "branch");
-			vm->dictionarySearchStart->data[5] = (vm->instructionPointer - &vm->dictionarySearchStart->data[4]) - 1; // why the -1? need to figure out why
+			{
+				ExecutionToken t = vm->dictionarySearchStart->data[4];
+				vm->dictionarySearchStart->data[4] = SearchForTokenString(vm, "branch");
+				int offset = vm->memoryTop - &vm->dictionarySearchStart->data[5];
+				for (int i = 4 + offset; i > 4; i--) {
+					vm->dictionarySearchStart->data[i + 1] = vm->dictionarySearchStart->data[i];
+				}
+			}
+			vm->dictionarySearchStart->data[5] = (vm->instructionPointer - &vm->dictionarySearchStart->data[4]) - 1;
+
+			
 			vm->memoryTop++;
 			vm->instructionPointer = PopReturnStack(vm);
 		}
@@ -677,9 +678,9 @@ exit:
 	"loop drop "
 "; "
 
-": variable create 0 , ; "
+": var create , ; "
 
-": value variable does> @ ; "
+": const var does> @ ; "
 ;
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
