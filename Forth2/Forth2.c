@@ -128,58 +128,62 @@ static int CompileCStringToForthString(ForthVm* vm, const char* string, char del
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Disassembler and stack printing functions
 
-static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
-	ForthPrint(vm, "\tbytecode: ");
-	while (((ForthDictHeader*)*readPtr)->data[0] != Return) {
-		ForthDictHeader* token = (ForthDictHeader*)(*readPtr++);
-		ForthPrint(vm, token->name);
-		vm->putchar(' ');
-		int length;
-		int adjustedLength;
-		switch (token->data[0]) {
-		BCase NumLiteral:
-		case Branch:
-		case Branch0: // intentional fallthrough
-			ForthPrintInt(vm, *readPtr++);
-			vm->putchar(' ');
-		BCase StringLiteral:
-			PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, "\" ");
-		BCase SearchForAndPushExecutionToken:
-			PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, " ");
-		}
+static Bool IsPointingToHeader(const ForthVm* vm, Cell* readPtr) {
+	const ForthDictHeader* item = vm->dictionarySearchStart;
+	if ((Cell*)item == readPtr) {
+		return True;
 	}
-	ForthPrint(vm, "return\n");
+	while (item->previous != NULL) {
+		if ((Cell*)item == readPtr) {
+			return True;
+		}
+		item = ((const ForthDictHeader*)item->previous);
+	}
+	return False;
 }
 
 static void PrintDictionaryContents(const ForthVm* vm) {
-	const ForthDictHeader* item = vm->dictionarySearchStart;
-	int i = 0;
-	while (item->previous != NULL) {
-		ForthPrintInt(vm, i++);
-		ForthPrint(vm, ".) ");
-		ForthPrint(vm, item->name);
-		ForthPrint(vm, " \n");
-		ForthPrint(vm, "\tImmediate: ");
-		ForthPrint(vm, item->isImmediate ? "true" : "false");
-		ForthPrint(vm, "\n");
-		if (item->data[0] == EnterWord && !StringCompare(item->name, "enter")) {
-			Cell* readPtr = item->data[1];
-			PrintCompiledWordContents(vm, readPtr);
+	const Cell* readPtr = vm->memory;
+	while (readPtr < vm->memoryTop) {
+		if (IsPointingToHeader(vm, *readPtr)) {
+			ForthDictHeader* token = (ForthDictHeader*)(*readPtr);
+			ForthPrint(vm, token->name);
+			vm->putchar(' ');
+			Cell* readPtrCopy = readPtr + 1; // shit hack to make new code backwards compata
+			switch (token->data[0]) {
+			BCase NumLiteral :
+			case Branch:
+			case Branch0: // intentional fallthrough
+				ForthPrintInt(vm, *(readPtrCopy++));
+				readPtr = readPtrCopy;
+				vm->putchar(' ');
+			BCase StringLiteral :
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtrCopy, "\" ");
+				readPtr = readPtrCopy;
+
+			BCase SearchForAndPushExecutionToken :
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtrCopy, " ");
+				readPtr = readPtrCopy;
+			}
+		}
+		else if (IsPointingToHeader(vm, readPtr)) { // look closer, lenny
+			const ForthDictHeader* item = (const ForthDictHeader*)readPtr;
+			ForthPrint(vm, " \n");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, item->name);
+			ForthPrint(vm, "\tImmediate: ");
+			ForthPrint(vm, item->isImmediate ? "true" : "false");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, "\t");
+			readPtr += (sizeof(ForthDictHeader) / sizeof(Cell));
 		}
 		else {
-			ForthPrint(vm,"\tprimitive\n");
+			ForthPrintInt(vm, *readPtr);
+			vm->putchar(' ');
 		}
-		ForthPrint(vm,"\n");
-		item = ((const ForthDictHeader*)item->previous);
+		readPtr++;
 	}
-	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
-	size_t capacity = vm->maxMemorySize * sizeof(Cell);
-
-	ForthPrint(vm, "memory usage (bytes): ");
-	ForthPrintInt(vm, dictionaryBytes);
-	ForthPrint(vm, " / ");
-	ForthPrintInt(vm, capacity);
-	vm->putchar('\n');
 }
 
 static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
