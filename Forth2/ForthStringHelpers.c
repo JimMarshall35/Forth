@@ -99,10 +99,9 @@ void ForthPrint(const ForthVm* vm, const char* string)
 	}
 }
 
-void ForthPrintInt(const ForthVm* vm, Cell val)
+void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base)
 {
 	static char buf[32] = { 0 };
-	int base = 10;
 	int i = 30;
 	if (val == 0) {
 		vm->putchar('0');
@@ -117,5 +116,16 @@ void ForthPrintInt(const ForthVm* vm, Cell val)
 	}
 	char* string = &buf[i + 1];
 	ForthPrint(vm, string);
+}
+
+
+void ForthPrintInt(const ForthVm* vm, Cell val)
+{
+	ForthPrintIntInternal(vm, val, 10);
+}
+
+void ForthPrintIntHex(const ForthVm* vm, Cell val)
+{
+	ForthPrintIntInternal(vm, val, 16);
 }
 

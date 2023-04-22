@@ -66,7 +66,7 @@ typedef enum {
 // forward declarations
 static ExecutionToken SearchForToken(ForthVm* vm);
 static Bool LoadNextToken(ForthVm* vm); // to be used at compile time only
-static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim);
+static int CompileCStringToForthString(ForthVm* vm, const char* string, char delim);
 
 #define PopIntStack(vm) *(--vm->intStackTop)
 #define PushIntStack(vm, val) *(vm->intStackTop++) = val;
@@ -75,11 +75,16 @@ static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char d
 #define PushReturnStack(vm, val) *(vm->returnStackTop++) = val
 
 
-static ForthDictHeader* LastWordAdded(ForthVm* vm) {
-	return (vm->dictionarySearchStart == NULL) ? vm->memory : vm->dictionarySearchStart;
-}
 
-static Bool ParseInlineBytecodeStringToCStringInTokenBuffer(ForthVm* vm, Cell** readPtr) {
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Forth String handling functions
+//
+//	This Forth uses strings of this format:
+// 
+//	| Cell | Cell | Cell | .... | .... |
+//	|length| char1| char2| char3| ect  |
+//
+
+static Bool ParseInlineForthStringToCStringInTokenBuffer(ForthVm* vm, Cell** readPtr) {
 	Cell sizeInBytes = *((*readPtr)++);
 	char* charCastDest = vm->tokenBuffer;
 	char* charCast = (char*)*readPtr;
@@ -91,11 +96,9 @@ static Bool ParseInlineBytecodeStringToCStringInTokenBuffer(ForthVm* vm, Cell** 
 	*readPtr += cellsAdvanceRequired;
 }
 
-static Bool IsPrimitive(ExecutionToken token) {
-	return (token >= 0) && (token < NumPrimitives);
-}
 
-static void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cell** readPtr, const char* endSequence) {
+
+static void PrintInlineForthStringAdvancingReadPointer(const ForthVm* vm, Cell** readPtr, const char* endSequence) {
 	int length = *(*readPtr)++;
 	int adjustedLength = length % sizeof(Cell) ? (length / sizeof(Cell)) + 1 : length / sizeof(Cell);
 	const char* charPtr = *readPtr;
@@ -108,58 +111,107 @@ static void PrintInlineBytecodeStringAdvancingReadPointer(const ForthVm* vm, Cel
 	*readPtr += adjustedLength;
 }
 
-static void PrintCompiledWordContents(const ForthVm* vm, Cell* readPtr) {
-	ForthPrint(vm, "\tbytecode: ");
-	while (((ForthDictHeader*)*readPtr)->data[0] != Return) {
-		ForthDictHeader* token = (ForthDictHeader*)(*readPtr++);
-		ForthPrint(vm, token->name);
-		vm->putchar(' ');
-		int length;
-		int adjustedLength;
-		switch (token->data[0]) {
-		BCase NumLiteral:
-		case Branch:
-		case Branch0: // intentional fallthrough
-			ForthPrintInt(vm, *readPtr++);
-			vm->putchar(' ');
-		BCase StringLiteral:
-			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, "\" ");
-		BCase SearchForAndPushExecutionToken:
-			PrintInlineBytecodeStringAdvancingReadPointer(vm, &readPtr, " ");
-		}
+static int CompileCStringToForthString(ForthVm* vm, const char* string, char delim) {
+	Cell* length = vm->memoryTop++; // save to back-patch with length afterwards;
+	const char* readPtr = string;
+	char* writePtr = (char*)vm->memoryTop;
+	int stringLen = 0;
+	while (*readPtr != delim) {
+		*writePtr++ = *readPtr++;
+		stringLen++;
 	}
-	ForthPrint(vm, "return\n");
+	Cell cellsRequired = stringLen % sizeof(Cell) ? (stringLen / sizeof(Cell)) + 1 : stringLen / sizeof(Cell);
+	*length = stringLen;
+	vm->memoryTop += cellsRequired;
+	return stringLen;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Disassembler and stack printing functions
+
+static Bool IsPointingToHeader(const ForthVm* vm, Cell* readPtr) {
+	const ForthDictHeader* item = vm->dictionarySearchStart;
+	while (item != NULL) {
+		if ((const Cell*)item == readPtr) {
+			return True;
+		}
+		item = ((const ForthDictHeader*)item->previous);
+	}
+	return False;
 }
 
 static void PrintDictionaryContents(const ForthVm* vm) {
-	const ForthDictHeader* item = vm->dictionarySearchStart;
-	int i = 0;
-	while (item->previous != NULL) {
-		ForthPrintInt(vm, i++);
-		ForthPrint(vm, ".) ");
-		ForthPrint(vm, item->name);
-		ForthPrint(vm, " \n");
-		ForthPrint(vm, "\tImmediate: ");
-		ForthPrint(vm, item->isImmediate ? "true" : "false");
-		ForthPrint(vm, "\n");
-		if (item->data[0] == EnterWord && !StringCompare(item->name, "enter")) {
-			Cell* readPtr = item->data[1];
-			PrintCompiledWordContents(vm, readPtr);
+	const Cell* readPtr = vm->memory;
+	while (readPtr < vm->memoryTop) {
+		if (IsPointingToHeader(vm, (Cell*)*readPtr)) {
+			ForthDictHeader* token = (ForthDictHeader*)(*readPtr);
+			ForthPrint(vm, token->name);
+			vm->putchar(' ');
+			readPtr++;
+			switch (token->data[0]) {
+			BCase NumLiteral :
+			case Branch:
+			case Branch0: // intentional fallthrough
+				ForthPrintInt(vm, *(readPtr++));
+				vm->putchar(' ');
+			BCase StringLiteral :
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, "\" ");
+			BCase SearchForAndPushExecutionToken :
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, " ");
+			}
+		}
+		else if (IsPointingToHeader(vm, readPtr)) { // look closer, lenny
+			const ForthDictHeader* item = (const ForthDictHeader*)readPtr;
+			ForthPrint(vm, " \n");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, item->name);
+			ForthPrint(vm, "\tImmediate: ");
+			ForthPrint(vm, item->isImmediate ? "true" : "false");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, "\n");
+			ForthPrint(vm, "\t");
+			readPtr += (sizeof(ForthDictHeader) / sizeof(Cell));
 		}
 		else {
-			ForthPrint(vm,"\tprimitive\n");
+			ForthPrintInt(vm, *readPtr);
+			vm->putchar(' ');
+			readPtr++;
 		}
-		ForthPrint(vm,"\n");
-		item = ((const ForthDictHeader*)item->previous);
 	}
-	size_t dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
-	size_t capacity = vm->maxMemorySize * sizeof(Cell);
+}
 
-	ForthPrint(vm, "memory usage (bytes): ");
-	ForthPrintInt(vm, dictionaryBytes);
-	ForthPrint(vm, " / ");
-	ForthPrintInt(vm, capacity);
-	vm->putchar('\n');
+static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
+	ForthPrint(vm, stackName);
+	Cell* readPtr = stack;
+	ForthPrint(vm, "[ ");
+	while (readPtr != stackTop) {
+		if (readPtr + 1 == stackTop) {
+			ForthPrintInt(vm, *(readPtr++));
+		}
+		else {
+			ForthPrintInt(vm, *(readPtr++));
+			ForthPrint(vm, ", ");
+		}
+	}
+	ForthPrint(vm, " ]\n");
+}
+
+static void PrintIntStack(const ForthVm* vm) {
+	PrintStack(vm, vm->intStack, vm->intStackTop, "int stack:    ");
+}
+
+static void PrintReturnStack(const ForthVm* vm) {
+	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: ");
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Core internal dictionary manipulation functions
+
+static Bool IsPrimitive(ExecutionToken token) {
+	return (token >= 0) && (token < NumPrimitives);
+}
+
+static ForthDictHeader* LastWordAdded(ForthVm* vm) {
+	return (vm->dictionarySearchStart == NULL) ? vm->memory : vm->dictionarySearchStart;
 }
 
 static ExecutionToken SearchForToken(ForthVm* vm) {
@@ -196,29 +248,8 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 	vm->memoryTop++;
 }
 
-static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
-	ForthPrint(vm, stackName);
-	Cell* readPtr = stack;
-	ForthPrint(vm, "[ ");
-	while (readPtr != stackTop) {
-		if (readPtr + 1 == stackTop) {
-			ForthPrintInt(vm, *(readPtr++));
-		}
-		else {
-			ForthPrintInt(vm, *(readPtr++));
-			ForthPrint(vm, ", ");
-		}
-	}
-	ForthPrint(vm, " ]\n");
-}
 
-static void PrintIntStack(const ForthVm* vm) {
-	PrintStack(vm, vm->intStack, vm->intStackTop, "int stack:    ");
-}
-
-static void PrintReturnStack(const ForthVm* vm) {
-	PrintStack(vm, vm->returnStack, vm->returnStackTop, "return stack: ");
-}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Inner and outer interpreter
 
 static Bool InnerInterpreter(ForthVm* vm){
 	Cell* initialReturnStack = vm->returnStackTop;
@@ -299,7 +330,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			cell2 = PopIntStack(vm);
 			*((char*)cell1) = (char)cell2;
 		BCase SearchForAndPushExecutionToken:
-			ParseInlineBytecodeStringToCStringInTokenBuffer(vm, &vm->instructionPointer);
+			ParseInlineForthStringToCStringInTokenBuffer(vm, &vm->instructionPointer);
 			cell1 = SearchForToken(vm);
 			PushIntStack(vm, cell1);
 		BCase Here:
@@ -430,7 +461,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			ForthPrintInt(vm, cell1);
 		BCase SearchForAndPushExecutionTokenCompileTime:
 			*(vm->memoryTop++) = SearchForTokenString(vm, "r'");
-			CompileCStringToForthByteCode(vm, vm->nextTokenStart, ' ');
+			CompileCStringToForthString(vm, vm->nextTokenStart, ' ');
 			if (!LoadNextToken(vm)) {
 				//return True;
 			}
@@ -442,7 +473,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			vm->instructionPointer += cell2;
 		BCase StringLiteralCompileTime:
 			*vm->memoryTop++ = SearchForTokenString(vm, "sr\"");
-			cell1 = CompileCStringToForthByteCode(vm, vm->nextTokenStart, '"');
+			cell1 = CompileCStringToForthString(vm, vm->nextTokenStart, '"');
 			vm->nextTokenStart += cell1 + 2;
 		BCase EnterWord:
 			PushReturnStack(vm, vm->instructionPointer);
@@ -495,21 +526,6 @@ static Bool InnerInterpreter(ForthVm* vm){
 		}
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
-}
-
-static int CompileCStringToForthByteCode(ForthVm* vm, const char* string, char delim) {
-	Cell* length = vm->memoryTop++; // save to back-patch with length afterwards;
-	const char* readPtr = string;
-	char* writePtr = (char*)vm->memoryTop;
-	int stringLen = 0;
-	while (*readPtr != delim) {
-		*writePtr++ = *readPtr++;
-		stringLen++;
-	}
-	Cell cellsRequired = stringLen % sizeof(Cell) ? (stringLen / sizeof(Cell)) + 1 : stringLen / sizeof(Cell);
-	*length = stringLen;
-	vm->memoryTop += cellsRequired;
-	return stringLen;
 }
 
 static Bool LoadNextToken(ForthVm* vm) {
@@ -568,9 +584,9 @@ static void OuterInterpreter(ForthVm* vm, const char* input) {
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Core forth words
+
 static const char* coreWords =
-//"create : r' enter here ! 1 cell * allot here 1 cell * + here ! 1 cell * allot ( boiler plate created to call function ) r' ] here ! 1 cell * allot r' create here ! 1 cell * allot r' enter here ! 1 cell * allot here 1 cell * + here ! "
-//"showWords "
 // helpers
 ": allotCell cell * allot ; "
 
@@ -690,10 +706,12 @@ exit:
 	"loop drop "
 "; "
 
-": var create , ; "
+": var ( [consumes next input token] initialVal -- ) create , ; "
 
-": const var does> @ ; "
+": const ( [consumes next input token] initialVal -- ) var does> @ ; "
 ;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Public API
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
 	ForthDictHeader item;
@@ -713,6 +731,7 @@ void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Boo
 	newItem->data[1] = function;
 	vm->memoryTop += 2;
 }
+
 
 ForthVm Forth_Initialise(
 	Cell* memoryForCompiledWordsAndVariables,

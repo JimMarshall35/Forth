@@ -11,8 +11,15 @@ typedef enum {
 	False,
 	True
 }Bool;
+
+#ifdef _WIN64 
+typedef int64_t Cell;
+typedef uint64_t UCell;
+#elif _WIN32
 typedef int32_t Cell;
 typedef uint32_t UCell;
+#endif
+
 
 typedef int (*ForthPutChar)(int val);
 typedef int (*ForthGetChar)(void);
