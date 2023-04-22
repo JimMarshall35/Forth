@@ -111,7 +111,15 @@ void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base, Bool enforceCe
 	int i = 30;
 	if (val == 0) {
 		if (enforceCellSize) {
-			PrintNibbles(vm, sizeof(Cell) * 2);
+			switch (base)
+			{
+				BCase 10:
+				// not implemented
+				BCase 16 :
+					PrintNibbles(vm, sizeof(Cell) * 2);
+			default:
+				break;
+			}
 		}
 		else {
 			vm->putchar('0');
