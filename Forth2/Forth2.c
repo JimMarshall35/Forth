@@ -1,5 +1,4 @@
 #include "Forth2.h"
-#include "ForthEnvironmentDefs.h"
 #include "ForthStringHelpers.h"
 
 /************************************\
