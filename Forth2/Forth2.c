@@ -1,4 +1,5 @@
 #include "Forth2.h"
+#include "ForthEnvironmentDefs.h"
 #include "ForthStringHelpers.h"
 
 /************************************\
@@ -172,11 +173,29 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 			readPtr += (sizeof(ForthDictHeader) / sizeof(Cell));
 		}
 		else {
-			ForthPrintInt(vm, *readPtr);
+			ForthPrintIntHex(vm, *readPtr);
 			vm->putchar(' ');
 			readPtr++;
 		}
 	}
+	vm->putchar('\n');
+	vm->putchar('\n');
+
+	UCell dictionaryBytes = (char*)vm->memoryTop - (char*)vm->memory;
+	UCell capacity = vm->maxMemorySize * sizeof(Cell);
+
+	ForthPrint(vm, "dictionary memory usage (bytes): ");
+	ForthPrintInt(vm, dictionaryBytes);
+	ForthPrint(vm, " / ");
+	ForthPrintInt(vm, capacity);
+#ifdef CAN_USE_FLOATS
+	ForthPrint(vm, ". (");
+	float percentage = ((float)dictionaryBytes / (float)capacity) * 100.0f;
+	ForthPrintInt(vm, (Cell)percentage);
+	ForthPrint(vm, "%)");
+#endif
+	vm->putchar('\n');
+	vm->putchar('\n');
 }
 
 static void PrintStack(const ForthVm* vm, Cell* stack, Cell* stackTop, const char* stackName) {
@@ -735,11 +754,11 @@ void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Boo
 
 ForthVm Forth_Initialise(
 	Cell* memoryForCompiledWordsAndVariables,
-	size_t memorySize,
+	UCell memorySize,
 	Cell* intStack,
-	size_t intStackSize,
+	UCell intStackSize,
 	Cell* returnStack,
-	size_t returnStackSize,
+	UCell returnStackSize,
 	ForthPutChar putc,
 	ForthGetChar getc) {
 

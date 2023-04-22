@@ -99,33 +99,57 @@ void ForthPrint(const ForthVm* vm, const char* string)
 	}
 }
 
-void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base)
+void PrintNibbles(const ForthVm* vm, int numNibblesToPrint) {
+	for (int i = 0; i < numNibblesToPrint; i++) {
+		vm->putchar('0');
+	}
+}
+
+void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base, Bool enforceCellSize)
 {
 	static char buf[32] = { 0 };
 	int i = 30;
 	if (val == 0) {
-		vm->putchar('0');
+		if (enforceCellSize) {
+			PrintNibbles(vm, sizeof(Cell) * 2);
+		}
+		else {
+			vm->putchar('0');
+		}
 		return;
 	}
 	Cell absVal = (val < 0) ? -val : val;
+	UCell numDigits = 0;
 	for (; absVal && i; --i, absVal /= base) {
 		buf[i] = "0123456789abcdef"[absVal % base];
+		numDigits++;
 	}
 	if (val < 0) {
 		buf[i--] = '-';
 	}
 	char* string = &buf[i + 1];
+	if (enforceCellSize) {
+		switch (base)
+		{
+		BCase 10:
+			// not implemented
+		BCase 16:
+			PrintNibbles(vm, sizeof(Cell) * 2 - numDigits);
+		default:
+			break;
+		}
+	}
 	ForthPrint(vm, string);
 }
 
-
 void ForthPrintInt(const ForthVm* vm, Cell val)
 {
-	ForthPrintIntInternal(vm, val, 10);
+	ForthPrintIntInternal(vm, val, 10, False);
 }
 
 void ForthPrintIntHex(const ForthVm* vm, Cell val)
 {
-	ForthPrintIntInternal(vm, val, 16);
+	ForthPrint(vm, "0x");
+	ForthPrintIntInternal(vm, val, 16, True);
 }
 
