@@ -130,11 +130,8 @@ static int CompileCStringToForthString(ForthVm* vm, const char* string, char del
 
 static Bool IsPointingToHeader(const ForthVm* vm, Cell* readPtr) {
 	const ForthDictHeader* item = vm->dictionarySearchStart;
-	if ((Cell*)item == readPtr) {
-		return True;
-	}
-	while (item->previous != NULL) {
-		if ((Cell*)item == readPtr) {
+	while (item != NULL) {
+		if ((const Cell*)item == readPtr) {
 			return True;
 		}
 		item = ((const ForthDictHeader*)item->previous);
@@ -145,25 +142,21 @@ static Bool IsPointingToHeader(const ForthVm* vm, Cell* readPtr) {
 static void PrintDictionaryContents(const ForthVm* vm) {
 	const Cell* readPtr = vm->memory;
 	while (readPtr < vm->memoryTop) {
-		if (IsPointingToHeader(vm, *readPtr)) {
+		if (IsPointingToHeader(vm, (Cell*)*readPtr)) {
 			ForthDictHeader* token = (ForthDictHeader*)(*readPtr);
 			ForthPrint(vm, token->name);
 			vm->putchar(' ');
-			Cell* readPtrCopy = readPtr + 1; // shit hack to make new code backwards compata
+			readPtr++;
 			switch (token->data[0]) {
 			BCase NumLiteral :
 			case Branch:
 			case Branch0: // intentional fallthrough
-				ForthPrintInt(vm, *(readPtrCopy++));
-				readPtr = readPtrCopy;
+				ForthPrintInt(vm, *(readPtr++));
 				vm->putchar(' ');
 			BCase StringLiteral :
-				PrintInlineForthStringAdvancingReadPointer(vm, &readPtrCopy, "\" ");
-				readPtr = readPtrCopy;
-
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, "\" ");
 			BCase SearchForAndPushExecutionToken :
-				PrintInlineForthStringAdvancingReadPointer(vm, &readPtrCopy, " ");
-				readPtr = readPtrCopy;
+				PrintInlineForthStringAdvancingReadPointer(vm, &readPtr, " ");
 			}
 		}
 		else if (IsPointingToHeader(vm, readPtr)) { // look closer, lenny
@@ -181,8 +174,8 @@ static void PrintDictionaryContents(const ForthVm* vm) {
 		else {
 			ForthPrintInt(vm, *readPtr);
 			vm->putchar(' ');
+			readPtr++;
 		}
-		readPtr++;
 	}
 }
 
