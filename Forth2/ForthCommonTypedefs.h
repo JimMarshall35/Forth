@@ -63,6 +63,7 @@ typedef struct {
 
 // my solution to unintentional break case fallthrough in C / C++
 #define BCase break; case 
+#define BDefault break; default 
 
 
 #ifdef __cplusplus

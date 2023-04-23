@@ -105,6 +105,7 @@ void PrintNibbles(const ForthVm* vm, int numNibblesToPrint) {
 	}
 }
 
+/* enforceCellSize = do we print pad extra 0s to hex numbers to reflect cell size */
 void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base, Bool enforceCellSize)
 {
 	static char buf[32] = { 0 };
@@ -113,12 +114,9 @@ void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base, Bool enforceCe
 		if (enforceCellSize) {
 			switch (base)
 			{
-				BCase 10:
-				// not implemented
+				BCase 10: // not implemented
 				BCase 16 :
 					PrintNibbles(vm, sizeof(Cell) * 2);
-			default:
-				break;
 			}
 		}
 		else {
@@ -139,12 +137,9 @@ void ForthPrintIntInternal(const ForthVm* vm, Cell val, int base, Bool enforceCe
 	if (enforceCellSize) {
 		switch (base)
 		{
-		BCase 10:
-			// not implemented
+		BCase 10: // not implemented
 		BCase 16:
 			PrintNibbles(vm, sizeof(Cell) * 2 - numDigits);
-		default:
-			break;
 		}
 	}
 	ForthPrint(vm, string);

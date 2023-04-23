@@ -32,5 +32,8 @@
     <ClInclude Include="ForthCommonTypedefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ForthEnvironmentDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

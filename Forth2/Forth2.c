@@ -60,6 +60,7 @@ typedef enum {
 	SwitchToCompile,
 	SwitchToInterpret,
 	Does,
+	Nop,
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
 
@@ -320,7 +321,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			cell2 = PopIntStack(vm);
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell2);
-		BCase Rot:
+		BCase Rot: //( a b c - b c a )
 			cell1 = PopIntStack(vm);
 			cell2 = PopIntStack(vm);
 			cell3 = PopIntStack(vm);
@@ -507,6 +508,8 @@ static Bool InnerInterpreter(ForthVm* vm){
 			vm->currentMode |= Forth_CompileBit;
 		BCase SwitchToInterpret:
 			vm->currentMode &= ~Forth_CompileBit;
+		BCase Nop: // todo: move below Does when a new token is added to keep in order - can't leave blank if at end of switch
+
 		BCase Does:
 			// re-write the return token of the last created word 
 			// with a branch pointing to the next part of THIS word.
@@ -676,7 +679,7 @@ exit:
 	rest of code
 
 */
-": do "
+": do ( limit i -- ) "
 	"' branch , "
 	"here ( label of initial jump ) "
 	"1 allotCell "
@@ -713,6 +716,32 @@ exit:
 	"' drop , "
 "; immediate "
 
+": +loop ( amountToIncrementIBy -- ) "
+	"( compile code to pop i and limit from return stack ) "
+	"' R> , "
+	"' R> , "
+
+	"( compile code to rotate increment amount from bottom of stack ) "
+	"' rot , "
+	"' + , "
+
+	"( we are now at the test label ) "
+	"dup "
+	"backPatch "
+
+	"( compile code to compare i and limit and branch if not equal ) "
+	"' 2dup , "
+	"' = , "
+	"' branch0 , "
+	"here "
+	"- cell "
+	"/ , "
+
+	"( compile code to clean up i and limit from int stack now that the loop has ended ) "
+	"' drop , "
+	"' drop , "
+"; immediate "
+
 // other misc words
 
 ": cr 10 emit ; "
@@ -727,6 +756,7 @@ exit:
 ": var ( [consumes next input token] initialVal -- ) create , ; "
 
 ": const ( [consumes next input token] initialVal -- ) var does> @ ; "
+": array ( [consumes next token] arraySize -- ) create 0 do 0 , loop ; "
 ;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Public API
@@ -837,6 +867,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, SwitchToCompile,                           "]",         False);
 	AddPrimitiveToDict(&vm, SwitchToInterpret,                         "[",         True);
 	AddPrimitiveToDict(&vm, Does,                                      "does>",     False);
+	AddPrimitiveToDict(&vm, Nop,                                       "nop",       False);
 
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
