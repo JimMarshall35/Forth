@@ -47,6 +47,7 @@ typedef enum {
 	PopReturnStackWord,
 	TwoDup,
 	TwoSwap,
+	TwoRot,
 	I,
 	J,
 	FullStop,
@@ -273,7 +274,7 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 static Bool InnerInterpreter(ForthVm* vm){
 	Cell* initialReturnStack = vm->returnStackTop;
 	ExecutionToken token, item;
-	Cell cell1, cell2, cell3, cell4; // top four of the stack commonly used, can't declare locals in case
+	Cell cell1, cell2, cell3, cell4, cell5, cell6; // top four of the stack commonly used, can't declare locals in case
 	const char* nextTokenReadPtr = NULL;
 	char* dictionaryNameWritePtr = NULL;
 	do {
@@ -469,6 +470,20 @@ static Bool InnerInterpreter(ForthVm* vm){
 			PushIntStack(vm, cell1);
 			PushIntStack(vm, cell4);
 			PushIntStack(vm, cell3);
+		BCase TwoRot:
+			cell1 = PopIntStack(vm);
+			cell2 = PopIntStack(vm);
+			cell3 = PopIntStack(vm);
+			cell4 = PopIntStack(vm);
+			cell5 = PopIntStack(vm);
+			cell6 = PopIntStack(vm);
+			PushIntStack(vm, cell4);
+			PushIntStack(vm, cell3);
+			PushIntStack(vm, cell2);
+			PushIntStack(vm, cell1);
+			PushIntStack(vm, cell6);
+			PushIntStack(vm, cell5);
+
 		BCase I: // these two could be done in forth but we (I) want them to be fast
 			cell1 = vm->returnStackTop[-2];
 			PushIntStack(vm, cell1);
@@ -854,6 +869,7 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, PopReturnStackWord,                        "R>",        False);
 	AddPrimitiveToDict(&vm, TwoDup,                                    "2dup",      False);
 	AddPrimitiveToDict(&vm, TwoSwap,                                   "2swap",     False);
+	AddPrimitiveToDict(&vm, TwoRot,                                    "2rot",      False);
 	AddPrimitiveToDict(&vm, I,                                         "i",         False);
 	AddPrimitiveToDict(&vm, J,                                         "j",         False);
 	AddPrimitiveToDict(&vm, FullStop,                                  ".",         False);

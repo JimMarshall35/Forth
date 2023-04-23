@@ -1,3 +1,1 @@
-﻿  Main.c
-C:\Users\User1\source\repos\forth\Forth\ForthRepl\Main.c(18,13): warning C4013:  'gets' undefined; assuming extern returning int
-  ForthRepl.vcxproj -> C:\Users\User1\source\repos\forth\Forth\Debug\ForthRepl.exe
+﻿  ForthRepl.vcxproj -> C:\Users\User1\source\repos\forth\Forth\Debug\ForthRepl.exe
