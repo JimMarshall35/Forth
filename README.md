@@ -25,7 +25,7 @@ three projects:
 
 TODO 
 (short term):
-- add ability to pass text files to the repl exe. It should preprocess the files to ensure one space between each token and no non space whitespace (but be smart enough not to remove whitespace from inside string literals
+- add ability to pass text files to the repl exe. It should preprocess the files to ensure one space between each token and no non space whitespace (but be smart enough not to remove whitespace from inside string literals (DONE)
 - write more useful words, in forth where possible
 - get tests to run on new (old) pc and update tests to reflect new word additions
 - Create C interop helper library, including linking between vms for a namespace like ability
