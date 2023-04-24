@@ -1,45 +1,31 @@
 : <= ( a b -- isA<=B )
 	2dup
-	<
-	( a b a<b )
-	rot
-	( b a<b a )
-	rot
-	( a<b a b )
-	=
-	( a<b a=b )
-	or
-	( isA<=B )
+	<   ( a b a<b )
+	rot ( b a<b a )
+	rot ( a<b a b )
+	=   ( a<b a=b )
+	or  ( isA<=B )
 ;
 
 : >= ( a b -- isA<=B )
 	2dup
-	>
-	( a b a<b )
-	rot
-	( b a<b a )
-	rot
-	( a<b a b )
-	=
-	( a<b a=b )
-	or
-	( isA<=B )
+	>   ( a b a<b )
+	rot ( b a<b a )
+	rot ( a<b a b )
+	=   ( a<b a=b )
+	or  ( isA<=B )
 ;
 
 : moveCells ( addr1 addr2 numCellsToMove -- )
 	0 do
 		( addr1 addr2 )
 		2dup
-		swap 
-		( addr1 addr2 addr2 addr1 )
-		i cell * + @                        ( add i cells to addr1 and dereference )
-		( addr1 addr2 addr2 addr1[i] )
-		swap
-		( addr1 addr2 addr1[i] addr2 )
-		i cell * +
-		( addr1 addr2 addr1[i] addr2+i*cell )
-		!                                   ( store at addr2 + i*cell )
-		( addr1 addr2 )
+		swap         ( addr1 addr2 addr2 addr1 )
+		i cell * + @ ( addr1 addr2 addr2 addr1[i] )         ( add i cells to addr1 and dereference )
+		swap         ( addr1 addr2 addr1[i] addr2 )
+		i cell * +   ( addr1 addr2 addr1[i] addr2+i*cell )
+		!            ( addr1 addr2 )                        ( store at addr2 + i*cell )
+		
 	loop
 	drop drop 
 ;
@@ -96,22 +82,18 @@
 	until
 ;
 
-( string type )
+( !!!!!!!!!!!!!!!!!!!!!STRING HANDLING WORDS!!!!!!!!!!!!!!!!!!!!! )
 
 : string ( capacity -- )
 	create
 	here
-	swap
-	2 cell * + allot ( + 2 cells for length and pointer to string data )
-	align
-	dup
-	0 swap !
-	cell +
-	dup cell + swap !
+	0 ,        ( allot 1 cell for length )
+	swap allot ( allot 'capacity' number of chars )
+	drop
 	does>
 		dup cell +
 		swap @
-		swap
+		swap 
 ;
 
 : stringset ( lengthSrc dataSrc lengthDes dataDes -- )
@@ -129,6 +111,48 @@
 	rot        ( dataSrc dataDes lengthSrc )
 	( copy chars )
 	moveChars
+;
+
+: setNewLength ( newLength dataDes -- )
+	cell - 
+	! 
+;
+
+: concatChar ( char lengthDes dataDes )
+	swap 1 +
+	swap
+	( char incrementedLength dataDes )
+	dup 
+	( char incrementedLength  dataDes dataDes )
+	rot dup rot
+	( char dataDes incrementedLength incrementedLength dataDes )
+	setNewLength
+	( char dataDes incrementedLength )
+	1 - +
+	( char indexedAddress )
+	c!
+;
+
+: concat ( lengthSrc dataSrc lengthDes dataDes -- )
+	rot           ( lengthSrc lengthDes dataDes dataSrc )
+	2swap         ( dataDes dataSrc lengthSrc lengthDes )
+	2dup swap R R ( stash lengthSrc and lengthDes on the return stack for later ) 
+	+             ( dataDes dataSrc combinedLen )
+	dup           ( dataDes dataSrc combinedLen combinedLen )
+	2swap         ( combinedLen combinedLen dataDes dataSrc )
+	swap          ( combinedLen combinedLen dataSrc dataDes )
+	2swap         ( dataSrc dataDes combinedLen combinedLen )
+	rot           ( dataSrc combinedLen combinedLen dataDes )
+	dup           ( dataSrc combinedLen combinedLen dataDes dataDes )
+	rot           ( dataSrc combinedLen dataDes dataDes combinedLen )
+	swap          ( dataSrc combinedLen dataDes combinedLen dataDes )
+	cell -        ( dataSrc combinedLen dataDes combinedLen desLengthPtr )
+	!             ( dataSrc combinedLen dataDes )
+	R>            ( dataSrc combinedLen dataDes lengthDes ) ( RETURN STACK: )( lengthSrc )
+	+             ( dataSrc combinedLen adjustedDataDes ) 
+	swap drop     ( dataSrc adjustedDataDes )
+	R>            ( dataSrc adjustedDataDes lengthSrc ) ( RETURN STACK: )( EMPTY )
+	moveChars     ( copy src string ont the end of destination string )
 ;
 
 : stringlen ( len data -- len ) drop ;
@@ -171,7 +195,7 @@
 	
 ;
 
-( c++ type vectors, except of fixed capacity )
+( !!!!!!!!!!!!!!!!!!!!!VECTORS (RESIZABLE ARRAYS)!!!!!!!!!!!!!!!!!!!!! )
 
 : vector ( capacity -- )
 	create
