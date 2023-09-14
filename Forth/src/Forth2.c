@@ -82,7 +82,7 @@ static int CompileCStringToForthString(ForthVm* vm, const char* string, char del
 //
 //	This Forth uses strings of this format:
 // 
-//	| Cell | Cell | Cell | .... | .... |
+//	| Cell | byte | byte | .... | .... |
 //	|length| char1| char2| char3| ect  |
 //
 
