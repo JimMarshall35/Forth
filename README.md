@@ -4,6 +4,7 @@ a forth
 16/09/23 
   - premake build system set up, to enable generation of project files for many different IDEs
   - google test added as a git sub module, test project builds googletest from source
+  - to build on windows, run one of the build project files batch files, requires CMake in order to work
 
 Written in C - C++ test project, Visual studio 2019 - x86 or x64
 
