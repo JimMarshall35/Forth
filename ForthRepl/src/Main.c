@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../Forth2/Forth2.h"
+#include "Forth2.h"
 #define MainMemorySize (1024 * 32)
 #define IntStackSize 64
 #define ReturnStackSize 64

@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "../Forth2/ForthStringHelpers.h"
+#include "ForthStringHelpers.h"
 #include <conio.h>
-#include "../Forth2/Forth2.h" // the fact I have to include this header to write the tests as well suggests the string helper methods which require an initialised forth VM should be moved to Forth.c/.h or changed to take a putchar pointer instead of a forth vm
+#include "Forth2.h" // the fact I have to include this header to write the tests as well suggests the string helper methods which require an initialised forth VM should be moved to Forth.c/.h or changed to take a putchar pointer instead of a forth vm
 
 #define NumDictItems 256
 #define MainMemorySize (1024 * 32)

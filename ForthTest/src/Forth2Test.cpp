@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "../Forth2/Forth2.h"
-#include "../Forth2/ForthStringHelpers.h"
+#include "Forth2.h"
+#include "ForthStringHelpers.h"
 #include <string>
 #include <cstdarg>
 #include <conio.h>
@@ -347,4 +347,10 @@ INSTANTIATE_TEST_CASE_P(
         Case("4 8 test", Chars{'8', '4'}, Stack{}, &Test3)
     ));
 
-
+int main(int argc, char** argv)
+{
+  // This allows us to call this executable with various command line arguments
+  // which get parsed in InitGoogleTest
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
