@@ -1,6 +1,10 @@
 # Forth
 a forth 
 
+16/09/23 
+  - premake build system set up, to enable generation of project files for many different IDEs
+  - google test added as a git sub module, test project builds googletest from source
+
 Written in C - C++ test project, Visual studio 2019 - x86 or x64
 
 Forth core project has no std library dependencies. Upon initialising vm "put char" and "get char" IO function pointers are passed in and these are the only external dependencies the forth VM has, although it is possible to register C functions for it to call in a similar manner to lua.
