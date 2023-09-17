@@ -104,8 +104,17 @@ INSTANTIATE_TEST_CASE_P(
         Case(": test do 123 loop ; 5 0 test", Stack{ 123,123,123,123,123 }),
         Case(": test do 123 loop ; 3 0 test", Stack{ 123,123,123 }),
         Case(": test do 3 0 do 1 loop 2 loop ; 3 0 test", Stack{ 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2 }),
-        Case(": test do 3 0 do 1 loop 2 loop ; 2 0 test", Stack{ 1, 1, 1, 2, 1, 1, 1, 2 })
+        Case(": test do 3 0 do 1 loop 2 loop ; 2 0 test", Stack{ 1, 1, 1, 2, 1, 1, 1, 2 }),
+        Case(": test 10 0 do i 2 +loop ; test", Stack{0, 2, 4, 6, 8 }),
+        Case(": test 0 10 do i -2 +loop ; test", Stack{ 10, 8, 6, 4, 2 }),
 
+        // create / does>
+        Case("create x 420 x ! x @", Stack{420}),
+        Case("420 var x x @", Stack{ 420 }),
+        Case("420 var x : test 10 0 do x @ 1 + x ! loop ; test test test x @", Stack{450}),
+        Case("42 const MeaningOfLife MeaningOfLife", Stack{ 42 }),
+        Case(": test 4 0 do i loop ; test", Stack{ 0, 1, 2, 3 }),
+        Case("4 array a : fillArray 4 0 do i a i cell * + ! loop ; : stackArray 4 0 do a i cell * + @ loop ; fillArray stackArray", Stack{0, 1, 2, 3})
     ));
 class PutCharTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<char>, std::vector<Cell>>> {
 private:
