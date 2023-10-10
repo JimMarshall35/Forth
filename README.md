@@ -1,6 +1,12 @@
 # Forth
 a forth 
 
+10/10/23
+Things I want to do next:
+  - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
+  - implement local variables
+  - implement round robin cooperative multitasking
+  - create Raspberry pi pico build
 16/09/23 
   - premake build system set up, to enable generation of project files for many different IDEs
   - google test added as a git sub module, test project builds googletest from source
