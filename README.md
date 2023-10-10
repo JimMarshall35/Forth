@@ -6,6 +6,11 @@ Things I want to do next:
   - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
   - implement local variables https://forth-standard.org/standard/locals
   - implement round robin cooperative multitasking
+    - pause
+    - wait
+    - signal
+    - send
+    - recieve
   - create Raspberry pi pico build
   - make tests run through visual studio test runner
     
