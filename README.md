@@ -4,10 +4,10 @@ a forth
 10/10/23
 Things I want to do next:
   - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
-  - implement local variables
+  - implement local variables https://forth-standard.org/standard/locals
   - implement round robin cooperative multitasking
   - create Raspberry pi pico build
-
+  - make tests run through visual studio test runner
     
 16/09/23 
   - premake build system set up, to enable generation of project files for many different IDEs
