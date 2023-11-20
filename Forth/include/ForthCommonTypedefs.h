@@ -40,6 +40,13 @@ typedef struct
 	Cell* intStackTop;
 	Cell* returnStackTop;
 	UCell isAwake;
+
+	Cell* intStack; // at the moment not necessary because all tasks have the same size stacks - but this could change in future
+	Cell* returnStack;
+
+	// message box
+	Cell message;
+	Cell sender;
 }ForthTaskUserArea;
 
 typedef struct {

@@ -68,6 +68,10 @@ typedef enum {
 	Sleep,
 	Wake,
 	Stop,
+	Over,
+	Message,
+	Sender,
+	MyTask,
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
 
@@ -275,21 +279,45 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////// internal multitasking functions
+/*
+DIAGRAM OF FORTH VM MEMORY
+
+HIGH MEMORY
+task		( task list grows downward )
+task
+task
+...
+...
+word
+word
+word		( dictionary grows upward )
+LOW MEMORY
+
+DIAGRAM OF A SINGLE TASK
+
+LOW MEMORY                     HIGH MEMORY
+ForthTaskUserArea < ReturnStack < IntStack
+
+*/
 
 ForthTaskUserArea* CreateTask(ForthVm* vm)//, const char* name)
 {
 	if (vm->numTasks + 1 < ForthVmMaxTasks)
 	{
 		ForthTaskUserArea* topTask = vm->tasks[vm->numTasks-1];
-		vm->tasks[vm->numTasks++] = topTask - (vm->maxIntStackSize + vm->maxReturnStackSize + sizeof(ForthTaskUserArea));
+		vm->tasks[vm->numTasks++] = topTask - (vm->maxIntStackSize + vm->maxReturnStackSize + sizeof(ForthTaskUserArea)/sizeof(Cell));
 		ForthTaskUserArea* newTask = vm->tasks[vm->numTasks-1];
 
 		newTask->intStackTop = topTask - vm->maxIntStackSize;
 		newTask->returnStackTop = topTask - (vm->maxIntStackSize + vm->maxReturnStackSize);
+		newTask->intStack = newTask->intStackTop;
+		newTask->returnStack = newTask->returnStackTop;
 
 		topTask->nextTask = newTask;
 		newTask->nextTask = vm->tasks[0];
 		newTask->isAwake = 0;
+		newTask->message = 0;
+		newTask->sender = 0;
 
 		return newTask;
 	}
@@ -320,12 +348,16 @@ void SwitchTask(ForthVm* vm)
 	vm->currentRunningTask->instructionPointer = vm->instructionPointer;
 	vm->currentRunningTask->intStackTop = vm->intStackTop;
 	vm->currentRunningTask->returnStackTop = vm->returnStackTop;
+	vm->currentRunningTask->intStack = vm->intStack;
+	vm->currentRunningTask->returnStack = vm->returnStack;
 
 	// restore new tasks context
 	vm->instructionPointer = newTask->instructionPointer;
 	vm->intStackTop = newTask->intStackTop;
 	vm->returnStackTop = newTask->returnStackTop;
 	vm->currentRunningTask = newTask;
+	vm->intStack = newTask->intStack;
+	vm->returnStack = newTask->returnStack;
 }
 
 
@@ -645,7 +677,7 @@ static Bool InnerInterpreter(ForthVm* vm){
 			}
 		BCase Pause:
 			SwitchTask(vm);
-		BCase Activate :
+		BCase Activate:
 			{
 				ForthTaskUserArea* task = PopIntStack(vm);
 				task->isAwake = 1;
@@ -654,12 +686,12 @@ static Bool InnerInterpreter(ForthVm* vm){
 				// is this return right? I think so. we want the rest of the code in this word to be run by the task we've just activated not THIS task, the one doing the activating
 				vm->instructionPointer = PopReturnStack(vm);
 			}
-		BCase Sleep :
+		BCase Sleep:
 			{
 				ForthTaskUserArea* task = PopIntStack(vm);
 				task->isAwake = 0;
 			}
-		BCase Wake :
+		BCase Wake:
 			{
 				ForthTaskUserArea* task = PopIntStack(vm);
 				task->isAwake = 1;
@@ -667,6 +699,20 @@ static Bool InnerInterpreter(ForthVm* vm){
 		BCase Stop:
 			vm->currentRunningTask->isAwake = 0;
 			SwitchTask(vm);
+		BCase Over:
+			PushIntStack(vm, vm->intStackTop[-2]);
+		BCase Message:
+			{
+				ForthTaskUserArea* task = PopIntStack(vm);
+				PushIntStack(vm, &task->message);
+			}
+		BCase Sender:
+			{
+				ForthTaskUserArea* task = PopIntStack(vm);
+				PushIntStack(vm, &task->sender);
+			}
+		BCase MyTask:
+			PushIntStack(vm, vm->currentRunningTask);
 		}
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
@@ -734,39 +780,39 @@ static const char* coreWords =
 // helpers
 ": allotCell cell * allot ; "
 
-": , ( valueToCompile -- ) here ! 1 allotCell ; "
+": , here ! 1 allotCell ; " //  ( valueToCompile -- )
 
 ": cells cell / ; "
 
-": branchOffsetInCells ( addressOfBranch -- offsetToTheAddressInCellsFromCurrentDictPointer ) "
-	"here swap - ( calculate offset in bytes ) "
-	"cells ( convert to offset in cells ) "
+": branchOffsetInCells "//addressOfBranch -- offsetToTheAddressInCellsFromCurrentDictPointer
+	"here swap - "      // calculate offset in bytes
+	"cells "            // convert to offset in cells
 "; "
 
-": backPatch ( addressOfBranch -- ) "
+": backPatch "//( addressOfBranch -- ) "
 	"branchOffsetInCells "
-	"swap ! ( store the offset at the address to be back-patched ) "
+	"swap ! "// store the offset at the address to be back-patched
 "; "
 
 // immediate words - these compile themselves down into control flow structures made up of branch and branch0 only
 // and these automate the setting of branch offsets by running at compile time as denoted by "immediate"
 ": if "
-	"' branch0 , ( compile a branch0 token ) "
-	"here ( 'here' now points to where the compiled ifs branch offset will go, push it to be back-patched by then or else ) "
-	"1 allotCell ( advance top of memory to compile next part of the program ) "
+	"' branch0 , "// compile a branch0 token 
+	"here "       // 'here' now points to where the compiled ifs branch offset will go, push it to be back-patched by then or else
+	"1 allotCell "// advance top of memory to compile next part of the program
 "; immediate "
 
 ": then "
-	"dup ( duplicate the address that will be set with the branch offset ) "
+	"dup "// duplicate the address that will be set with the branch offset
 	"backPatch "
 "; immediate "
 
 ": else "
-	"' branch , ( compile branch token ) "
-	"here ( the top of memory now points to the cell where the branch tokens offset is, push it so it can be back - patched by then ) "
-	"1 allotCell ( move to the cell after, we will calculate the offset to this cell to back patch the if ) "
-	"swap ( swap so that the if tokens branch offset address is on top ) "
-	"dup ( two copies of the if's branch offset address are on top, and under that is this elses branch offset address ) "
+	"' branch , " // compile branch token
+	"here "       // the top of memory now points to the cell where the branch tokens offset is, push it so it can be back - patched by then
+	"1 allotCell "// move to the cell after, we will calculate the offset to this cell to back patch the if
+	"swap "       // swap so that the if tokens branch offset address is on top
+	"dup "        // two copies of the if's branch offset address are on top, and under that is this elses branch offset address
 	"backPatch "
 "; immediate "
 
@@ -776,11 +822,11 @@ static const char* coreWords =
 "; immediate "
 
 ": until "
-	"' branch0 , ( compile a branch0 token ) "
+	"' branch0 , "// compile a branch0 token
 	"branchOffsetInCells "
 	"-1 * "
 	"here ! "
-	"1 allotCell ( advance top of memory to compile next part of the program ) "
+	"1 allotCell "// advance top of memory to compile next part of the program
 "; immediate "
 /*
 *  compiler generated do / loop pseudo code
@@ -806,27 +852,27 @@ exit:
 	"' branch , "
 	"here ( label of initial jump ) "
 	"1 allotCell "
-	"here ( start label in pseudo code above ) "
+	"here " // start label in pseudo code above
 	"swap "
-	"' R , ( compile code to push i onto return stack ) "
-	"' R , ( compile code to push limit onto return stack ) "
+	"' R , "// compile code to push i onto return stack
+	"' R , "// compile code to push limit onto return stack
 "; immediate "
 
 ": loop "
-	"( compile code to pop i and limit from return stack ) "
+	// compile code to pop i and limit from return stack
 	"' R> , "
 	"' R> , "
 
-	"( compile code to increment i ) "
+	// compile code to increment i
 	"' lit , "
 	"1 , "
 	"' + , "
 
-	"( we are now at the test label ) "
+	// we are now at the test label
 	"dup "
 	"backPatch "
 
-	"( compile code to compare i and limit and branch if not equal ) "
+	// compile code to compare i and limit and branch if not equal
 	"' 2dup , "
 	"' = , "
 	"' branch0 , "
@@ -834,25 +880,25 @@ exit:
 	"- cell "
 	"/ , "
 
-	"( compile code to clean up i and limit from int stack now that the loop has ended ) "
+	// compile code to clean up i and limit from int stack now that the loop has ended
 	"' drop , "
 	"' drop , "
 "; immediate "
 
 ": +loop ( amountToIncrementIBy -- ) "
-	"( compile code to pop i and limit from return stack ) "
+	// compile code to pop i and limit from return stack
 	"' R> , "
 	"' R> , "
 
-	"( compile code to rotate increment amount from bottom of stack ) "
+	// compile code to rotate increment amount from bottom of stack
 	"' rot , "
 	"' + , "
 
-	"( we are now at the test label ) "
+	// we are now at the test label
 	"dup "
 	"backPatch "
 
-	"( compile code to compare i and limit and branch if not equal ) "
+	// compile code to compare i and limit and branch if not equal
 	"' 2dup , "
 	"' = , "
 	"' branch0 , "
@@ -860,7 +906,7 @@ exit:
 	"- cell "
 	"/ , "
 
-	"( compile code to clean up i and limit from int stack now that the loop has ended ) "
+	// compile code to clean up i and limit from int stack now that the loop has ended
 	"' drop , "
 	"' drop , "
 "; immediate "
@@ -869,17 +915,45 @@ exit:
 
 ": cr 10 emit ; "
 
-": print ( length address -- ) "
+": print " //  ( length address -- )
 	"swap "
 	"0 do "
 		"dup i + c@ emit "
 	"loop drop "
 "; "
 
-": var ( [consumes next input token] initialVal -- ) create , ; "
+": var create , ; " // ( [consumes next input token] initialVal -- ) 
 
-": const ( [consumes next input token] initialVal -- ) var does> @ ; "
-": array ( [consumes next token] arraySize -- ) create 0 do 0 , loop ; "
+": const var does> @ ; "          // ( [consumes next input token] initialVal -- ) 
+": array create 0 do 0 , loop ; " // ( [consumes next token] arraySize -- ) 
+
+
+// MULTI TASKING WORDS 
+// MAILBOXES
+": send " // ( message destTaskAddr -- )
+	"myTask "      // ( message destTaskAddr myTask )
+	"over sender " // ( message destTaskAddr myTask &sender ) get address of destinations sender
+	"begin "       // wait until any pending message is acknowledged by the recipient
+		"pause "
+		"dup @ "   // ( message destTaskAddr myTask &sender sender )
+	"not until "
+	"! "           // ( message destTaskAddr )
+	"message ! "
+"; "
+
+": recieve " // ( -- message taskAddr )
+	"begin "            // wait for my sender to become non-zero
+		"myTask sender @ . cr "
+		"pause "
+		"myTask sender @ "
+	"until "
+	"myTask message @ " 
+	"myTask sender @ "
+	"0 myTask sender ! "
+"; "
+
+// SEMAPHORE
+
 ;
 
 
@@ -929,14 +1003,18 @@ ForthVm Forth_Initialise(
 	vm.intStack = (vm.memory + memorySize) - intStackSize;
 	vm.intStackTop = vm.intStack;
 	vm.maxIntStackSize = intStackSize;
-	
-	// setup initial task 
+
 	vm.returnStack = (vm.memory + memorySize) - intStackSize - returnStackSize;
 	vm.returnStackTop = vm.returnStack;
 	vm.maxReturnStackSize = returnStackSize;
-	vm.tasks[vm.numTasks++] = vm.returnStack - sizeof(ForthTaskUserArea);
+	vm.tasks[vm.numTasks++] = vm.returnStack - sizeof(ForthTaskUserArea)/sizeof(Cell);
 	vm.currentRunningTask = vm.tasks[0];
 	vm.currentRunningTask->isAwake = 1;
+	vm.currentRunningTask->sender = 0;
+	vm.currentRunningTask->message = 0;
+	vm.currentRunningTask->intStack = vm.intStack;
+	vm.currentRunningTask->intStack = vm.returnStack;
+
 
 	vm.putchar = putc;
 	vm.getchar = getc;
@@ -1001,9 +1079,13 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, Task,                                      "task",      False);
 	AddPrimitiveToDict(&vm, Pause,                                     "pause",     False);
 	AddPrimitiveToDict(&vm, Activate,                                  "activate",  False);
-	AddPrimitiveToDict(&vm, Activate,                                  "sleep",     False);
-	AddPrimitiveToDict(&vm, Activate,                                  "wake",      False);
-	AddPrimitiveToDict(&vm, Activate,                                  "stop",      False);
+	AddPrimitiveToDict(&vm, Sleep,                                     "sleep",     False);
+	AddPrimitiveToDict(&vm, Wake,                                      "wake",      False);
+	AddPrimitiveToDict(&vm, Stop,                                      "stop",      False);
+	AddPrimitiveToDict(&vm, Over,                                      "over",      False);
+	AddPrimitiveToDict(&vm, Message,                                   "message",   False);
+	AddPrimitiveToDict(&vm, Sender,                                    "sender",    False);
+	AddPrimitiveToDict(&vm, MyTask,                                    "myTask",    False);
 
 
 	// load core vocabulary of words that are not primitive, ie are defined in forth
