@@ -6,7 +6,7 @@ Things I want to do next:
   - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
   - implement local variables https://forth-standard.org/standard/locals
   - implement round robin cooperative multitasking
-    - first pass done
+    - first pass done - semaphores + mail boxes still need to be implemented (in forth) and unit tests written
   - create Raspberry pi pico build
   - make tests run through visual studio test runner
     
