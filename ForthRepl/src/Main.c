@@ -135,8 +135,8 @@ int main(int argc, char* argv[])
     //int i = getch();
     ForthVm vm = Forth_Initialise(
         mainMem, MainMemorySize,
-        intStack, IntStackSize,
-        returnStack, ReturnStackSize,
+        IntStackSize,
+        ReturnStackSize,
         &putchar, &_getch);
     Forth_DoString(&vm, fizzbuzzTest);
     DoCommandLineArgs(&vm, argc, argv);
