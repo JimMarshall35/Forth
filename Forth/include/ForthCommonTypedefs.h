@@ -21,6 +21,8 @@ typedef enum {
 }ForthMode;
 
 #define DictionaryItemNameMaxLength 64
+#define ForthVmMaxTasks 16
+#define TaskNameMaxLength 16
 
 typedef struct {
 	char name[DictionaryItemNameMaxLength];
@@ -30,6 +32,15 @@ typedef struct {
 }ForthDictHeader;
 
 typedef ForthDictHeader* ExecutionToken;
+
+typedef struct
+{
+	void* nextTask;
+	Cell* instructionPointer;
+	Cell* intStackTop;
+	Cell* returnStackTop;
+	UCell isAwake;
+}ForthTaskUserArea;
 
 typedef struct {
 	// vm state flags
@@ -59,7 +70,13 @@ typedef struct {
 
 	ForthPutChar putchar;
 	ForthGetChar getchar;
+	ForthTaskUserArea* tasks[ForthVmMaxTasks];
+	UCell numTasks;
+
+	ForthTaskUserArea* currentRunningTask;
 }ForthVm;
+
+
 
 // my solution to unintentional break case fallthrough in C / C++
 #define BCase break; case 

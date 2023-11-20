@@ -14,9 +14,7 @@ extern "C" {
 	ForthVm Forth_Initialise(
 		Cell* memoryForCompiledWordsAndVariables,
 		UCell memorySize,
-		Cell* intStack,
 		UCell intStackSize,
-		Cell* returnStack,
 		UCell returnStackSize,
 		ForthPutChar putc,
 		ForthGetChar getc);

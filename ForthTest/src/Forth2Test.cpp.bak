@@ -18,8 +18,8 @@ Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
 ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
-    IntStackSize,\
-    ReturnStackSize,\
+    intStack, IntStackSize,\
+    returnStack, ReturnStackSize,\
     put, get);\
 
 class IntegerStackTests :public ::testing::TestWithParam<std::tuple<std::string, std::vector<Cell>>> {

@@ -62,6 +62,12 @@ typedef enum {
 	SwitchToInterpret,
 	Does,
 	Nop,
+	Task,
+	Pause,
+	Activate,
+	Sleep,
+	Wake,
+	Stop,
 	NumPrimitives // LEAVE AT END
 }PrimitiveWordTokenValues;
 
@@ -267,6 +273,70 @@ static void AddPrimitiveToDict(ForthVm* vm, PrimitiveWordTokenValues primitive, 
 	newItem->data[0] = primitive;
 	vm->memoryTop++;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////// internal multitasking functions
+
+ForthTaskUserArea* CreateTask(ForthVm* vm)//, const char* name)
+{
+	/*if (StringLength(name) >= TaskNameMaxLength)
+	{
+		ForthPrint(vm, "task ");
+		ForthPrint(vm, name);
+		ForthPrint(vm, "has a name that is too long, max name value is ");
+		ForthPrintInt(vm, TaskNameMaxLength);
+		return NULL;
+	}*/
+	if (vm->numTasks + 1 < ForthVmMaxTasks)
+	{
+		ForthTaskUserArea* topTask = vm->tasks[vm->numTasks-1];
+		vm->tasks[vm->numTasks++] = topTask - (vm->maxIntStackSize + vm->maxReturnStackSize + sizeof(ForthTaskUserArea));
+		ForthTaskUserArea* newTask = vm->tasks[vm->numTasks-1];
+
+		newTask->intStackTop = topTask - vm->maxIntStackSize;
+		newTask->returnStackTop = topTask - (vm->maxIntStackSize + vm->maxReturnStackSize);
+
+		topTask->nextTask = newTask;
+		newTask->nextTask = vm->tasks[0];
+		newTask->isAwake = 0;
+
+		//StringCopy(newTask->name, name);
+		return newTask;
+	}
+	else
+	{
+		ForthPrint(vm, "can't create new task - max tasks exceeded");
+	}
+	return NULL;
+
+}
+
+void ActivateTask(ForthVm* vm, ForthTaskUserArea* task, Cell* taskCode)
+{
+	task->instructionPointer = taskCode;
+	task->isAwake = 1;
+}
+
+void SwitchTask(ForthVm* vm)
+{
+	ForthTaskUserArea* newTask = vm->currentRunningTask->nextTask;
+
+	while (!newTask->isAwake)
+	{
+		newTask = newTask->nextTask;
+	}
+
+	// save context
+	vm->currentRunningTask->instructionPointer = vm->instructionPointer;
+	vm->currentRunningTask->intStackTop = vm->intStackTop;
+	vm->currentRunningTask->returnStackTop = vm->returnStackTop;
+
+	// restore new tasks context
+	vm->instructionPointer = newTask->instructionPointer;
+	vm->intStackTop = newTask->intStackTop;
+	vm->returnStackTop = newTask->returnStackTop;
+	vm->currentRunningTask = newTask;
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Inner and outer interpreter
@@ -559,6 +629,53 @@ static Bool InnerInterpreter(ForthVm* vm){
 			// we want to link subsequent defined words to it by replacing their return (the whole point of this section of code). 
 			// And so we just return now.
 			vm->instructionPointer = PopReturnStack(vm);
+		BCase Task:
+			if (vm->currentMode & Forth_CompileBit){
+				ForthPrint(vm, "only use the word 'task' when in interpret mode!\n");
+			}
+			else {
+				ForthTaskUserArea* task = CreateTask(vm);
+
+				// create a word in the dictionary that returns the address of the new task
+				item = (ForthDictHeader*)vm->memoryTop;
+				CopyStringUntilSpaceCappingWithNull(item->name, vm->nextTokenStart);
+				item->isImmediate = False;
+				vm->memoryTop += (sizeof(ForthDictHeader) / sizeof(Cell));
+				item->data = vm->memoryTop;
+				item->data[0] = EnterWord;
+				item->data[1] = &item->data[2];
+				item->data[2] = SearchForTokenString(vm, "lit");
+				item->data[3] = task;
+				item->data[4] = SearchForTokenString(vm, "return");
+				vm->memoryTop += 5;
+				item->previous = vm->dictionarySearchStart;
+				vm->dictionarySearchStart = item;
+				LoadNextToken(vm);
+			}
+		BCase Pause:
+			SwitchTask(vm);
+		BCase Activate :
+			{
+				ForthTaskUserArea* task = PopIntStack(vm);
+				task->isAwake = 1;
+				task->instructionPointer = vm->instructionPointer;
+
+				// is this return right? I think so. we want the rest of the code in this word to be run by the task we've just activated not THIS task, the one doing the activating
+				vm->instructionPointer = PopReturnStack(vm);
+			}
+		BCase Sleep :
+			{
+				ForthTaskUserArea* task = PopIntStack(vm);
+				task->isAwake = 0;
+			}
+		BCase Wake :
+			{
+				ForthTaskUserArea* task = PopIntStack(vm);
+				task->isAwake = 1;
+			}
+		BCase Stop:
+			vm->currentRunningTask->isAwake = 0;
+			SwitchTask(vm);
 		}
 	} while (vm->returnStackTop != initialReturnStack);
 	return False;
@@ -774,6 +891,8 @@ exit:
 ": array ( [consumes next token] arraySize -- ) create 0 do 0 , loop ; "
 ;
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////// Public API
 
 void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Bool isImmediate) {
@@ -796,18 +915,18 @@ void Forth_RegisterCFunc(ForthVm* vm, ForthCFunc function, const char* name, Boo
 }
 
 
+
 ForthVm Forth_Initialise(
 	Cell* memoryForCompiledWordsAndVariables,
 	UCell memorySize,
-	Cell* intStack,
 	UCell intStackSize,
-	Cell* returnStack,
 	UCell returnStackSize,
 	ForthPutChar putc,
 	ForthGetChar getc) {
 
 	ForthVm vm;
 	
+	vm.numTasks = 0;
 	vm.dictionarySearchStart = NULL;
 
 	vm.currentMode = 0;
@@ -816,13 +935,16 @@ ForthVm Forth_Initialise(
 	vm.memoryTop = vm.memory;
 	vm.maxMemorySize = memorySize;
 
-	vm.intStack = intStack;
+	vm.intStack = (vm.memory + memorySize) - intStackSize;
 	vm.intStackTop = vm.intStack;
 	vm.maxIntStackSize = intStackSize;
 
-	vm.returnStack = returnStack;
+	vm.returnStack = (vm.memory + memorySize) - intStackSize - returnStackSize;
 	vm.returnStackTop = vm.returnStack;
 	vm.maxReturnStackSize = returnStackSize;
+	vm.tasks[vm.numTasks++] = vm.returnStack - sizeof(ForthTaskUserArea);
+	vm.currentRunningTask = vm.tasks[0];
+	vm.currentRunningTask->isAwake = 1;
 
 	vm.putchar = putc;
 	vm.getchar = getc;
@@ -884,6 +1006,13 @@ ForthVm Forth_Initialise(
 	AddPrimitiveToDict(&vm, SwitchToInterpret,                         "[",         True);
 	AddPrimitiveToDict(&vm, Does,                                      "does>",     False);
 	AddPrimitiveToDict(&vm, Nop,                                       "nop",       False);
+	AddPrimitiveToDict(&vm, Task,                                      "task",      False);
+	AddPrimitiveToDict(&vm, Pause,                                     "pause",     False);
+	AddPrimitiveToDict(&vm, Activate,                                  "activate",  False);
+	AddPrimitiveToDict(&vm, Activate,                                  "sleep",     False);
+	AddPrimitiveToDict(&vm, Activate,                                  "wake",      False);
+	AddPrimitiveToDict(&vm, Activate,                                  "stop",      False);
+
 
 	// load core vocabulary of words that are not primitive, ie are defined in forth
 	OuterInterpreter(&vm, coreWords);
