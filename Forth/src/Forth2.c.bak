@@ -929,8 +929,7 @@ ForthVm Forth_Initialise(
 	vm.intStack = (vm.memory + memorySize) - intStackSize;
 	vm.intStackTop = vm.intStack;
 	vm.maxIntStackSize = intStackSize;
-	
-	// setup initial task 
+
 	vm.returnStack = (vm.memory + memorySize) - intStackSize - returnStackSize;
 	vm.returnStackTop = vm.returnStack;
 	vm.maxReturnStackSize = returnStackSize;
