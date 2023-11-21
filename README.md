@@ -30,6 +30,7 @@ I think it implements most of forth including:
   - C interop
   - code comments
   - Cooperative multitasking
+      - inter-task communication through Mail boxes, semaphore 
 
 three projects:
   Forth     - the core forth. VM struct definition, Functions to initialise VM and do string of forth source code, register C function as callable from forth
