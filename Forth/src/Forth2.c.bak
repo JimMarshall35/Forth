@@ -1037,7 +1037,7 @@ ForthVm Forth_Initialise(
 	vm.currentRunningTask->sender = 0;
 	vm.currentRunningTask->message = 0;
 	vm.currentRunningTask->intStack = vm.intStack;
-	vm.currentRunningTask->returnStack = vm.returnStack;
+	vm.currentRunningTask->intStack = vm.returnStack;
 
 
 	vm.putchar = putc;
