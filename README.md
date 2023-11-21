@@ -5,8 +5,6 @@ a forth
 Things I want to do next:
   - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
   - implement local variables https://forth-standard.org/standard/locals
-  - implement round robin cooperative multitasking
-    - first pass done - semaphores + mail boxes still need to be implemented (in forth) and unit tests written
   - create Raspberry pi pico build
   - make tests run through visual studio test runner
     
@@ -31,6 +29,7 @@ I think it implements most of forth including:
   - defining words with user defined runtime behavior using create and does>
   - C interop
   - code comments
+  - Cooperative multitasking
 
 three projects:
   Forth     - the core forth. VM struct definition, Functions to initialise VM and do string of forth source code, register C function as callable from forth
