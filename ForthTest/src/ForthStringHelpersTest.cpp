@@ -15,8 +15,8 @@ Cell intStack[IntStackSize];\
 Cell returnStack[ReturnStackSize];\
 ForthVm vm = Forth_Initialise(\
     mainMem, MainMemorySize,\
-    intStack, IntStackSize,\
-    returnStack, ReturnStackSize,\
+    IntStackSize,\
+    ReturnStackSize,\
     put, get);\
 
 
