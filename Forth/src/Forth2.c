@@ -1,29 +1,15 @@
-#include "Forth2.h"
+﻿#include "Forth2.h"
 #include "ForthStringHelpers.h"
 
 /*
 
-		  _____                   _______                   _____                _____                    _____
-		 /\    \                 /::\    \                 /\    \              /\    \                  /\    \
-		/::\    \               /::::\    \               /::\    \            /::\    \                /::\____\
-	   /::::\    \             /::::::\    \             /::::\    \           \:::\    \              /:::/    /
-	  /::::::\    \           /::::::::\    \           /::::::\    \           \:::\    \            /:::/    /
-	 /:::/\:::\    \         /:::/~~\:::\    \         /:::/\:::\    \           \:::\    \          /:::/    /
-	/:::/__\:::\    \       /:::/    \:::\    \       /:::/__\:::\    \           \:::\    \        /:::/____/
-   /::::\   \:::\    \     /:::/    / \:::\    \     /::::\   \:::\    \          /::::\    \      /::::\    \
-  /::::::\   \:::\    \   /:::/____/   \:::\____\   /::::::\   \:::\    \        /::::::\    \    /::::::\    \   _____
- /:::/\:::\   \:::\    \ |:::|    |     |:::|    | /:::/\:::\   \:::\____\      /:::/\:::\    \  /:::/\:::\    \ /\    \
-/:::/  \:::\   \:::\____\|:::|____|     |:::|    |/:::/  \:::\   \:::|    |    /:::/  \:::\____\/:::/  \:::\    /::\____\
-\::/    \:::\   \::/    / \:::\    \   /:::/    / \::/   |::::\  /:::|____|   /:::/    \::/    /\::/    \:::\  /:::/    /
- \/____/ \:::\   \/____/   \:::\    \ /:::/    /   \/____|:::::\/:::/    /   /:::/    / \/____/  \/____/ \:::\/:::/    /
-		  \:::\    \        \:::\    /:::/    /          |:::::::::/    /   /:::/    /                    \::::::/    /
-		   \:::\____\        \:::\__/:::/    /           |::|\::::/    /   /:::/    /                      \::::/    /
-			\::/    /         \::::::::/    /            |::| \::/____/    \::/    /                       /:::/    /
-			 \/____/           \::::::/    /             |::|  ~|           \/____/                       /:::/    /
-								\::::/    /              |::|   |                                        /:::/    /
-								 \::/____/               \::|   |                                       /:::/    /
-								  ~~                      \:|   |                                       \::/    /
-														   \|___|                                        \/____/
+███████╗ ██████╗ ██████╗ ████████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔══██╗╚══██╔══╝██║  ██║
+█████╗  ██║   ██║██████╔╝   ██║   ███████║
+██╔══╝  ██║   ██║██╔══██╗   ██║   ██╔══██║
+██║     ╚██████╔╝██║  ██║   ██║   ██║  ██║
+╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝
+
 
 Forth - Jim Marshall - 2022    
 jimmarshall35@gmail.com      
@@ -1002,15 +988,31 @@ exit:
 	to acquire the resource and then signal to release it.
 	(needs testing)
 */
-": wait ( addr -- ) "
+/*
+
+implementation from https://www.bradrodriguez.com/papers/mtasking.html
+
+": wait "
 	"begin "
-		"pause dup c@ " // wait for non-zero = available
+		"pause dup c@ "
 	"until "
-	"0 swap ! "         // make it zero = unavailable
+	"0 swap c! "
 "; "
 
-": signal ( addr -- ) "
-	"1 swap ! "         // make resource available to other tasks
+I prefer the one below which immediately procedes if the mutex is available and doesn't pause.
+Is there something wrong with my way? I don't know
+*/
+": wait " //( addr -- ) 
+	"dup c@ 0 = if "
+		"begin "
+			"pause dup c@ " // wait for non-zero = available
+		"until "
+	"then "
+	"0 swap c! "         // make it zero = unavailable
+"; "
+
+": signal "//( addr -- )
+	"1 swap c! "         // make resource available to other tasks
 "; "
 
 ;

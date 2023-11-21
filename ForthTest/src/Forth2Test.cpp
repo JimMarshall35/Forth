@@ -122,10 +122,12 @@ private:
 
 protected:
     void ComparePutCharOutputToExpected(const std::vector<char>& expected) {
-        
-        ASSERT_EQ(s_charOutput.size(), expected.size());// << std::string(s_charOutput.data());
+        size_t actualSize = s_charOutput.size();
+        auto& ooutput = s_charOutput;
+        size_t expectedSize = expected.size();
+        ASSERT_EQ(actualSize, expectedSize);// << std::string(s_charOutput.data());
         for (int i = 0; i < expected.size(); i++) {
-            ASSERT_EQ(s_charOutput[i], expected[i]);// << std::string(s_charOutput.data());
+            ASSERT_EQ(ooutput[i], expected[i]);// << std::string(s_charOutput.data());
         }
     }
     static void ClearCharOutput() {
@@ -197,6 +199,163 @@ const char* fizzbuzzTest =
 "; 16 fizzbuzz";
 
 const char* fizzbuzzTestOutput = "0\n1\n2\nfizz\n4\nbuzz\nfizz\n7\n8\nfizz\nbuzz\n11\nfizz\n13\n14\nfizzbuzz\n";
+
+const char* multiTaskingTest_taskMustBeActivated =
+"task taskA "
+": activateA taskA activate "
+    "begin "
+        "42 emit "
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "5 0 do "
+        "12 emit "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_taskActivated =
+"task taskA "
+": activateA taskA activate "
+    "begin "
+        "42 emit "
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "5 0 do "
+        "12 emit "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_taskActivated_2_tasks =
+"task taskA "
+": activateA taskA activate "
+    "begin "
+        "42 emit "
+        "pause "
+    "0 until "
+"; "
+
+"task taskB "
+": activateB taskB activate "
+    "begin "
+        "56 emit "
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "activateB "
+    "5 0 do "
+        "12 emit "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_taskActivated_taskReturnsCorrectlyWhenStopUsed =
+"task taskA "
+": activateA taskA activate "
+    "42 emit "
+    "stop "
+"; "
+
+"task taskB "
+": activateB taskB activate "
+    "begin "
+        "56 emit "
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "activateB "
+    "5 0 do "
+        "12 emit "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_mailbox =
+"task taskA "
+": activateA taskA activate "
+    "begin "
+        "recieve "
+        "drop emit " // emit mailbox contents
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "5 0 do "
+        "12 emit "
+        "i 2 > if "
+            "i taskA send "
+        "then "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_sleep =
+"task taskA "
+": activateA taskA activate "
+    "begin "
+        "6 emit " // emit mailbox contents
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "6 0 do "
+        "12 emit "
+        "i 2 = if "
+            "taskA sleep "
+        "then "
+        "i 4 = if "
+            "taskA wake "
+        "then "
+        "pause "
+    "loop "
+"; main ";
+
+const char* multiTaskingTest_semaphore =
+"task taskA "
+
+"1 var sem "
+
+": activateA taskA activate "
+    "begin "
+        "sem wait "
+        "6 emit "
+        "sem signal "
+        "pause "
+    "0 until "
+"; "
+
+": main "
+    "activateA "
+    "6 0 do "
+        "12 emit "
+        "i 2 = if "
+            "sem wait "
+        "then "
+        "i 4 = if "
+            "sem signal "
+        "then "
+        "pause "
+    "loop "
+"; main ";
+
+
 INSTANTIATE_TEST_CASE_P(
     CorrectValuesPassedToPutCharTestCases,
     PutCharTests,
@@ -212,7 +371,13 @@ INSTANTIATE_TEST_CASE_P(
         Case(": test s\" What's up ?!?!\" print 123 456 ; test", FromStringLiteral("What's up ?!?!"), Stack{ 123,456 }),
         Case(": test 0 do s\" hello\" print loop ; 3 test", FromStringLiteral("hellohellohello"), Stack{}),
         Case(": test s\" hello world\" print ; 420 . test", FromStringLiteral("420hello world"), Stack{}),
-        Case(fizzbuzzTest, FromStringLiteral(fizzbuzzTestOutput), Stack{})
+        Case(fizzbuzzTest, FromStringLiteral(fizzbuzzTestOutput), Stack{}),
+        Case(multiTaskingTest_taskMustBeActivated, Chars{ 12, 12, 12, 12, 12 }, Stack{}),
+        Case(multiTaskingTest_taskActivated, Chars{ 12, 42, 12, 42, 12, 42, 12, 42, 12, 42 }, Stack{}),
+        Case(multiTaskingTest_taskActivated_taskReturnsCorrectlyWhenStopUsed, Chars{ 12, 42, 56, 12, 56, 12, 56, 12, 56, 12, 56 }, Stack{}),
+        Case(multiTaskingTest_mailbox, Chars{ 12, 12, 12, 12, 3, 12, 4 }, Stack{}),
+        Case(multiTaskingTest_sleep, Chars{ 12, 6, 12, 6, 12, 12, 12, 6, 12, 6 }, Stack{}),
+        Case(multiTaskingTest_semaphore, Chars{ 12, 6, 12, 6, 12, 12, 12, 6, 12, 6 }, Stack{})
     ));
 
 }
