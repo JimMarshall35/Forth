@@ -25,29 +25,6 @@ void Repl(ForthVm* vm) {
 }
 
 /*
-: fizzbuzz 0 do i 0 = if 0 . cr else i 15 % 0 = if s" fizzbuzz" print cr else i 3 % 0 = if s" fizz" print cr else i 5 % 0 = if s" buzz" print cr else i . cr then then then then loop ;
-*/
-const char* fizzbuzzTest = 
-": fizzbuzz "
-    "0 do "
-        "i 0 = if "
-            "0 . cr "
-        "else i 15 % 0 = if "
-            "s\" fizzbuzz\" print cr "
-        "else i 3 % 0 = if "
-            "s\" fizz\" print cr "
-        "else i 5 % 0 = if "
-            "s\" buzz\" print cr "
-        "else "
-            "i . cr "
-        "then "
-        "then "
-        "then "
-        "then "
-    "loop "
-";";
-
-/*
 Applies this transformation to the contents of file fp:
 removes tabs, changes newlines into spaces, limits spaces (outside of string literals and comments) to only one concecutive space.
 writes result into buf
@@ -118,7 +95,6 @@ void DoCommandLineArgs(ForthVm* vm,int argc, char* argv[]) {
         // Outside of comments and string literals turns newlines into spaces, remove duplicate spaces and remove all tabs entirely.
         PreProcessForthSourceFileContentsIntoBuffer(fp, buf);
 
-        //printf("%s", buf);
         Forth_DoString(vm, buf);
 
         // clean up
@@ -129,16 +105,13 @@ void DoCommandLineArgs(ForthVm* vm,int argc, char* argv[]) {
 
 int main(int argc, char* argv[])
 {
-    Cell mainMem[MainMemorySize];
-    Cell intStack[IntStackSize];
-    Cell returnStack[ReturnStackSize];
-    //int i = getch();
+    static Cell mainMem[MainMemorySize + IntStackSize + ReturnStackSize];
+   
     ForthVm vm = Forth_Initialise(
         mainMem, MainMemorySize,
         IntStackSize,
         ReturnStackSize,
         &putchar, &_getch);
-    Forth_DoString(&vm, fizzbuzzTest);
     DoCommandLineArgs(&vm, argc, argv);
     Repl(&vm);
 }

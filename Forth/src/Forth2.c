@@ -935,6 +935,19 @@ exit:
 	implemented using 2 variables in task user area, which together make up 1 mailbox:
 		- message - the actual contents of the message - 1 cell in size
 		- sender - the task that sent the message. Doubles as flag to indicate pending message. if 0, then there is no pending message
+
+				   ..--""|
+				   |     |  <-- this part is sender
+				   | .---'
+			 (\-.--| |---------.
+			/ \) \ | |          \
+			|:.  | | |           |
+			|:.  | |o|           |  <-- this part is the message
+			|:.  | `"`           |
+			|:.  |_ __  __ _  __ /
+			`""""`""|=`|"""""""`
+					|=_|
+				jgs |= |
 */
 
 // send a message to a task
@@ -952,7 +965,6 @@ exit:
 /* will wait in a pausing loop until a message appears in mail box */
 ": recieve " // ( -- message taskAddr )
 	"begin "            // wait for my sender to become non-zero
-		"myTask sender @ . cr "
 		"pause "
 		"myTask sender @ "
 	"until "
