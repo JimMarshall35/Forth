@@ -928,19 +928,28 @@ exit:
 ": array create 0 do 0 , loop ; " // ( [consumes next token] arraySize -- ) 
 
 
-// MULTI TASKING WORDS 
+// MULTI TASKING WORDS  https://www.bradrodriguez.com/papers/mtasking.html
 // MAILBOXES
+/*
+	Send messages between tasks.
+	implemented using 2 variables in task user area, which together make up 1 mailbox:
+		- message - the actual contents of the message - 1 cell in size
+		- sender - the task that sent the message. Doubles as flag to indicate pending message. if 0, then there is no pending message
+*/
+
+// send a message to a task
 ": send " // ( message destTaskAddr -- )
-	"myTask "      // ( message destTaskAddr myTask )
-	"over sender " // ( message destTaskAddr myTask &sender ) get address of destinations sender
+	"myTask "
+	"over sender " // get address of destinations sender
 	"begin "       // wait until any pending message is acknowledged by the recipient
 		"pause "
-		"dup @ "   // ( message destTaskAddr myTask &sender sender )
+		"dup @ "
 	"not until "
-	"! "           // ( message destTaskAddr )
+	"! "
 	"message ! "
 "; "
 
+/* will wait in a pausing loop until a message appears in mail box */
 ": recieve " // ( -- message taskAddr )
 	"begin "            // wait for my sender to become non-zero
 		"myTask sender @ . cr "
@@ -953,6 +962,21 @@ exit:
 "; "
 
 // SEMAPHORE
+/*
+	like a mutex - lock access to a resource  by calling wait 
+	to acquire the resource and then signal to release it.
+	(needs testing)
+*/
+": wait ( addr -- ) "
+	"begin "
+		"pause dup c@ " // wait for non-zero = available
+	"until "
+	"0 swap ! "         // make it zero = unavailable
+"; "
+
+": signal ( addr -- ) "
+	"1 swap ! "         // make resource available to other tasks
+"; "
 
 ;
 
