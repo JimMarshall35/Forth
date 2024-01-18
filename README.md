@@ -1,3 +1,7 @@
+17/1/24: I can't make loop or +loop work...
+DO.. LOOP will always execute just once, whereas DO.. +LOOP will crash after 1st iteration (bad STORE address)
+
+
 # Forth
 a forth 
 
