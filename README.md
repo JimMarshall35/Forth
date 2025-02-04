@@ -34,7 +34,7 @@ three projects:
 TODO 
 (short term):
 - add ability to pass text files to the repl exe. It should preprocess the files to ensure one space between each token and no non space whitespace (but be smart enough not to remove whitespace from inside string literals (DONE)
-- Create C interop helper library, including linking between vms for a namespace like ability - (Some of this has been done in MrDo clone project - changes need porting over to this one)
+- Create C interop helper library, including linking between vms for a namespace like ability - (Some of this has been done in MrDo clone project - changes need porting over to this one. Changes also include an explicitly 32 bit fetch and store word)
 - an easy one that's been overlooked and is crucial in any real forth programming scenario - implement "forget" - reset the dictionary top pointer to directly before a given word
 
 (medium term):
@@ -50,7 +50,7 @@ TODO
 - systematically go through forth standard implementing all the words
 - create build pipeline with running tests. Improve repo, remove visual studio dependency convert project to CMAKE or similar
 - implement local variables https://forth-standard.org/standard/locals
-- words to save dictionary items to flash memory in pico build, select a forth word to run on bootup
+- words to save dictionary items to flash memory in pico build, and select a forth word to run on bootup
 - assembler words in pico build - write assembly code RPN style in forth, with labels, (from a repl for example) and have it assemble on the fly. If it has reached this point and has saving to flash memory, it'd actually be good and other people might want to use it
 
 (unknown-term)
