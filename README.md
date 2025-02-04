@@ -56,6 +56,7 @@ TODO
 (unknown-term)
   - make tests run through visual studio test runner
   - consider the possibility that there should be some checking for stack over and underflows, whether optional or not
+  - make the inner interpreter faster - but it must remain portable C and preferably not have goto's!!! Also, maybe make it more portable to ancient versions of C.
 
 Future port targets (boards I own):
 - raspberry pi pico
