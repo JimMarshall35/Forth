@@ -1,11 +1,6 @@
 # Forth
 a forth 
 
-10/10/23
-Things I want to do next:
-  - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
-  
-  - make tests run through visual studio test runner
     
 16/09/23 
   - premake build system set up, to enable generation of project files for many different IDEs
@@ -47,6 +42,8 @@ TODO
 (medium term):
 - implement REPL in forth - will probably require some new words - getchar is done but not really tested
 - create Raspberry pi pico build - basic shell that runs through serial and can create words in RAM
+- change build system from premake to CMake - it's just better I think and more amenable to embedded platforms - needed, I think for pico build
+
 
 (long term):
 - write custom repl terminal / ide with dictionary inspector. Try to use non windows specific gui library
@@ -57,6 +54,9 @@ TODO
 - implement local variables https://forth-standard.org/standard/locals
 - words to save dictionary items to flash memory in pico build, select a forth word to run on bootup
 - assembler words in pico build - write assembly code RPN style in forth, with labels, (from a repl for example) and have it assemble on the fly
+
+(unknown-term)
+  - make tests run through visual studio test runner
 
 Future port targets (boards I own):
 - raspberry pi pico
