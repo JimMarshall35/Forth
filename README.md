@@ -42,7 +42,10 @@ TODO
 - add ability to pass text files to the repl exe. It should preprocess the files to ensure one space between each token and no non space whitespace (but be smart enough not to remove whitespace from inside string literals (DONE)
 - write more useful words, in forth where possible
 - get tests to run on new (old) pc and update tests to reflect new word additions
-- Create C interop helper library, including linking between vms for a namespace like ability
+- Create C interop helper library, including linking between vms for a namespace like ability - (Some of this has been done in MrDo clone project - changes need porting over to this one)
+
+(medium term):
+- implement REPL in forth - will probably require some new words - getchar is done but not really tested
 
 (long term):
 - write custom repl terminal / ide with dictionary inspector. Try to use non windows specific gui library
