@@ -4,8 +4,7 @@ a forth
 10/10/23
 Things I want to do next:
   - change build system from premake to CMake - it's just better I think and more amenable to embedded platforms
-  - implement local variables https://forth-standard.org/standard/locals
-  - create Raspberry pi pico build
+  
   - make tests run through visual studio test runner
     
 16/09/23 
@@ -43,9 +42,11 @@ TODO
 - write more useful words, in forth where possible
 - get tests to run on new (old) pc and update tests to reflect new word additions
 - Create C interop helper library, including linking between vms for a namespace like ability - (Some of this has been done in MrDo clone project - changes need porting over to this one)
+- an easy one that's been overlooked and is crucial in any real forth programming scenario - implement "forget" - reset the dictionary top pointer to directly before a given word
 
 (medium term):
 - implement REPL in forth - will probably require some new words - getchar is done but not really tested
+- create Raspberry pi pico build - basic shell that runs through serial and can create words in RAM
 
 (long term):
 - write custom repl terminal / ide with dictionary inspector. Try to use non windows specific gui library
@@ -53,6 +54,9 @@ TODO
 - add float stack
 - systematically go through forth standard implementing all the words
 - create build pipeline with running tests. Improve repo, remove visual studio dependency convert project to CMAKE or similar
+- implement local variables https://forth-standard.org/standard/locals
+- words to save dictionary items to flash memory in pico build, select a forth word to run on bootup
+- assembler words in pico build - write assembly code RPN style in forth, with labels, (from a repl for example) and have it assemble on the fly
 
 Future port targets (boards I own):
 - raspberry pi pico
