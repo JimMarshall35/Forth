@@ -55,6 +55,7 @@ TODO
 
 (unknown-term)
   - make tests run through visual studio test runner
+  - consider the possibility that there should be some checking for stack over and underflows, whether optional or not
 
 Future port targets (boards I own):
 - raspberry pi pico
