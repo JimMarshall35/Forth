@@ -51,7 +51,7 @@ TODO
 - create build pipeline with running tests. Improve repo, remove visual studio dependency convert project to CMAKE or similar
 - implement local variables https://forth-standard.org/standard/locals
 - words to save dictionary items to flash memory in pico build, select a forth word to run on bootup
-- assembler words in pico build - write assembly code RPN style in forth, with labels, (from a repl for example) and have it assemble on the fly
+- assembler words in pico build - write assembly code RPN style in forth, with labels, (from a repl for example) and have it assemble on the fly. If it has reached this point and has saving to flash memory, it'd actually be good and other people might want to use it
 
 (unknown-term)
   - make tests run through visual studio test runner
