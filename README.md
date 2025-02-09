@@ -9,7 +9,7 @@ a forth
 
 Written in C - C++ test project, Visual studio 2019 - x86 or x64
 
-Forth core project has no std library dependencies. Upon initialising vm "put char" and "get char" IO function pointers are passed in and these are the only external dependencies the forth VM has, although it is possible to register C functions for it to call in a similar manner to lua.
+Forth core project has no std library dependencies and no dynamic memory allocation. Upon initialising vm "put char" and "get char" IO function pointers are passed in and these are the only external dependencies the forth VM has, although it is possible to register C functions for it to call in a similar manner to lua.
 
 Compiled code is a list of forth word header addresses, contains a disassembler to view the contents of the dictionary using the word "showWords" which disassembles the whole dictionary printing the names of words it finds and printing the info contained in the word headers it encounters.
 
