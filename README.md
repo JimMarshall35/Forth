@@ -36,6 +36,7 @@ TODO
 - add ability to pass text files to the repl exe. It should preprocess the files to ensure one space between each token and no non space whitespace (but be smart enough not to remove whitespace from inside string literals (DONE)
 - Create C interop helper library, including linking between vms for a namespace like ability - (Some of this has been done in MrDo clone project - changes need porting over to this one. Changes also include an explicitly 32 bit fetch and store word)
 - an easy one that's been overlooked and is crucial in any real forth programming scenario - implement "forget" - reset the dictionary top pointer to directly before a given word
+- when the return stack is printed with "show", it should maybe print the name of the function (word) that the return addresses are within. It would still need to show a numeric value too to be compatible with using the return stack to implement local variables (or in fact using the return stack just for loop counters like I do now).
 
 (medium term):
 - implement REPL in forth - will probably require some new words - getchar is done but not really tested
